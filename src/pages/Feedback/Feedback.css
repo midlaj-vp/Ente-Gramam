@@ -1,0 +1,452 @@
+.feedback-wrapper {
+    padding: 24px;
+    max-width: 1200px;
+    margin: 0 auto;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f8fafc;
+    min-height: 100vh;
+}
+
+.feedback-top-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 16px;
+    background: #ffffff;
+    padding: 20px 24px;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.feedback-top-header h2 {
+    margin: 0 0 6px 0;
+    color: #1e293b;
+    font-size: 24px;
+}
+
+.feedback-top-header p {
+    margin: 0;
+    color: #64748b;
+    font-size: 14px;
+}
+
+.btn-add-poll {
+    background: #0284c7;
+    color: white;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-add-poll:hover {
+    background: #0369a1;
+}
+
+.section-block {
+    margin-bottom: 32px;
+}
+
+.section-title-row {
+    margin-bottom: 16px;
+}
+
+.section-title-row h3 {
+    margin: 0 0 4px 0;
+    color: #0f172a;
+    font-size: 20px;
+}
+
+.section-subtitle {
+    color: #64748b;
+    font-size: 13px;
+}
+
+/* Polls Grid Layout */
+.polls-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 20px;
+}
+
+.poll-card {
+    background: #ffffff;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    border: 1px solid #e2e8f0;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.poll-img-container {
+    position: relative;
+    height: 160px;
+}
+
+.poll-img-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.poll-badges-row {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    right: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.badge-active-poll {
+    background: rgba(16, 185, 129, 0.9);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.poll-ends-text {
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+}
+
+.poll-card-body {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    justify-content: space-between;
+}
+
+.poll-card-body h4 {
+    margin: 0 0 8px 0;
+    color: #1e293b;
+    font-size: 16px;
+}
+
+.poll-card-body p {
+    margin: 0 0 16px 0;
+    color: #475569;
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.admin-action-btns {
+    display: flex;
+    gap: 6px;
+}
+
+.admin-action-btns button {
+    background: #f1f5f9;
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+    cursor: pointer;
+    padding: 4px 8px;
+    font-size: 12px;
+}
+
+.admin-action-btns button:hover {
+    background: #e2e8f0;
+}
+
+.poll-support-info {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: #64748b;
+    margin-bottom: 6px;
+}
+
+.support-val {
+    font-weight: 600;
+    color: #0f172a;
+}
+
+.progress-bar-bg {
+    background: #f1f5f9;
+    height: 8px;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 14px;
+}
+
+.progress-bar-fill {
+    background: #0284c7;
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+.rating-fill {
+    background: #10b981;
+}
+
+.btn-vote-now {
+    width: 100%;
+    background: #f0f9ff;
+    color: #0284c7;
+    border: 1px solid #bae6fd;
+    padding: 10px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-vote-now:hover {
+    background: #bae6fd;
+    color: #0369a1;
+}
+
+/* Project Feedbacks Grid */
+.project-feedbacks-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 20px;
+}
+
+.proj-fb-card {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    border: 1px solid #e2e8f0;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.proj-fb-top-badges {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.badge-completed {
+    background: #dcfce7;
+    color: #15803d;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.badge-ward {
+    background: #f1f5f9;
+    color: #475569;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.proj-fb-card h4 {
+    margin: 0 0 8px 0;
+    color: #1e293b;
+    font-size: 16px;
+}
+
+.proj-desc-short {
+    margin: 0 0 14px 0;
+    color: #64748b;
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.impact-summary-box {
+    background: #f0fdf4;
+    border-left: 3px solid #10b981;
+    padding: 10px;
+    border-radius: 0 6px 6px 0;
+    margin-bottom: 16px;
+}
+
+.impact-title-green {
+    font-size: 11px;
+    font-weight: 700;
+    color: #15803d;
+    margin-bottom: 2px;
+}
+
+.impact-summary-box p {
+    margin: 0;
+    font-size: 12px;
+    color: #166534;
+}
+
+.rating-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: #64748b;
+    margin-bottom: 6px;
+}
+
+.rating-score-txt {
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.btn-submit-feedback-card {
+    width: 100%;
+    background: #ecfdf5;
+    color: #059669;
+    border: 1px solid #a7f3d0;
+    padding: 10px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-submit-feedback-card:hover {
+    background: #a7f3d0;
+    color: #047857;
+}
+
+/* General Feedback Section */
+.general-fb-section {
+    background: #ffffff;
+    padding: 24px;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    border: 1px solid #e2e8f0;
+}
+
+.general-form-card {
+    max-width: 600px;
+}
+
+.form-group {
+    margin-bottom: 16px;
+}
+
+.form-group label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #334155;
+    margin-bottom: 6px;
+}
+
+.form-group select,
+.form-group textarea,
+.form-group input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: 14px;
+    color: #1e293b;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.form-group select:focus,
+.form-group textarea:focus,
+.form-group input:focus {
+    border-color: #0284c7;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.submit-btn {
+    background: #0284c7;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.submit-btn:hover {
+    background: #0369a1;
+}
+
+/* Modals */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(15, 23, 42, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    padding: 16px;
+}
+
+.modal-box {
+    background: white;
+    padding: 24px;
+    border-radius: 12px;
+    width: 100%;
+    max-width: 500px;
+    position: relative;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+}
+
+.modal-box h2 {
+    margin: 0 0 6px 0;
+    color: #0f172a;
+    font-size: 20px;
+}
+
+.modal-box p {
+    margin: 0 0 16px 0;
+    color: #64748b;
+    font-size: 13px;
+}
+
+.close-btn {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: none;
+    border: none;
+    font-size: 22px;
+    cursor: pointer;
+    color: #64748b;
+}
+
+.close-btn:hover {
+    color: #0f172a;
+}
+
+.cancel-btn {
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px solid #cbd5e1;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.cancel-btn:hover {
+    background: #e2e8f0;
+}

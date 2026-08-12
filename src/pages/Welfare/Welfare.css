@@ -1,0 +1,911 @@
+.sch-container {
+    padding: 24px;
+    background: #f4f6f4;
+    min-height: 100vh;
+    font-family: "Inter", "Segoe UI", sans-serif;
+    color: #1f2a24;
+    position: relative;
+    box-sizing: border-box;
+}
+
+.sch-toast {
+    position: fixed;
+    top: 18px;
+    right: 18px;
+    background: #1f7a4d;
+    color: #fff;
+    padding: 10px 16px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 999;
+}
+
+.sch-header-section {
+    margin-bottom: 20px;
+}
+
+.sch-header-section h2 {
+    margin: 0 0 4px;
+    font-size: 22px;
+}
+
+.sch-header-section p {
+    margin: 0;
+    font-size: 13px;
+    color: #5b6b62;
+}
+
+.sch-section-title {
+    font-size: 14px;
+    font-weight: 700;
+    margin: 4px 0 12px;
+}
+
+/* Scheme catalog */
+.sch-scheme-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 14px;
+    margin-bottom: 26px;
+}
+
+.sch-scheme-card {
+    background: #fff;
+    border-radius: 14px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+    border: 1px solid transparent;
+}
+
+.sch-scheme-card.active {
+    border-color: #1f7a4d;
+    background: #f4faf6;
+}
+
+.sch-scheme-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.sch-scheme-card-top strong {
+    font-size: 14px;
+}
+
+.sch-scheme-card p {
+    font-size: 12px;
+    color: #5b6b62;
+    margin: 0;
+    line-height: 1.5;
+}
+
+.sch-scheme-hint {
+    font-size: 11px !important;
+    color: #9aa5a0 !important;
+    font-style: italic;
+}
+
+.sch-scheme-card-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    margin-top: auto;
+}
+
+.sch-deadline-pill {
+    font-size: 11px;
+    color: #b5450c;
+    background: #fde3d3;
+    padding: 3px 8px;
+    border-radius: 999px;
+}
+
+.sch-apply-btn {
+    background: #1f7a4d;
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.sch-apply-btn:disabled {
+    background: #cdd8d1;
+    cursor: not-allowed;
+}
+
+.sch-view-btn {
+    background: #fff;
+    color: #1f7a4d;
+    border: 1.5px solid #1f7a4d;
+}
+
+/* Apply details modal */
+.sch-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.sch-modal {
+    background: #fff;
+    border-radius: 16px;
+    padding: 24px;
+    width: 100%;
+    max-width: 420px;
+    max-height: 85vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+    box-sizing: border-box;
+}
+
+.sch-modal h3 {
+    margin: 0 0 4px;
+    font-size: 17px;
+}
+
+.sch-modal-sub {
+    margin: 0 0 18px;
+    font-size: 12px;
+    color: #8a9690;
+}
+
+.sch-modal-form {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.sch-modal-form label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #475569;
+}
+
+.sch-modal-form input {
+    border: 1px solid #e2e8e4;
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 13px;
+    font-weight: 400;
+    outline: none;
+    font-family: inherit;
+}
+
+.sch-modal-form input:focus {
+    border-color: #1f7a4d;
+}
+
+.sch-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 6px;
+}
+
+/* Panchayath: manage schemes */
+.sch-manage-schemes {
+    margin-bottom: 18px;
+}
+
+.sch-new-scheme-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: #fafbfa;
+    border: 1px solid #edf1ee;
+    border-radius: 12px;
+    padding: 14px;
+    margin: 12px 0;
+}
+
+.sch-form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.sch-new-scheme-form input,
+.sch-new-scheme-form textarea {
+    border: 1px solid #e2e8e4;
+    border-radius: 8px;
+    padding: 9px 12px;
+    font-size: 13px;
+    font-family: inherit;
+    outline: none;
+}
+
+.sch-new-scheme-form textarea {
+    resize: vertical;
+    min-height: 60px;
+}
+
+.sch-new-scheme-form button {
+    align-self: flex-start;
+}
+
+.sch-scheme-manage-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.sch-scheme-manage-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: #fafbfa;
+    font-size: 13px;
+}
+
+/* 3-column layout (Ward / Panchayath) */
+.sch-main-grid {
+    display: grid;
+    grid-template-columns: 280px 1fr 280px;
+    gap: 18px;
+}
+
+/* 2-column layout (Citizen — scheme cards double as the selector, no left list) */
+.sch-main-grid-2col {
+    grid-template-columns: 1fr 280px;
+}
+
+.sch-left-col,
+.sch-mid-col,
+.sch-right-col {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.sch-list-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.sch-list-head h3 {
+    margin: 0;
+    font-size: 15px;
+}
+
+.sch-search {
+    background: #fff;
+    border-radius: 10px;
+    padding: 8px 12px;
+}
+
+.sch-search input {
+    border: none;
+    outline: none;
+    width: 100%;
+    font-size: 13px;
+    background: transparent;
+}
+
+.sch-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.sch-empty {
+    font-size: 12px;
+    color: #8a9690;
+    padding: 6px 0;
+}
+
+.sch-list-item {
+    text-align: left;
+    background: #fff;
+    border: 1px solid #edf1ee;
+    border-left: 3px solid transparent;
+    border-radius: 10px;
+    padding: 10px 12px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.sch-list-item.active {
+    border-left-color: #1f7a4d;
+    background: #f4faf6;
+}
+
+.sch-list-item-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.sch-list-item-bottom-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+}
+
+.sch-doc-progress {
+    font-size: 10px;
+    color: #8a9690;
+}
+
+.sch-applicant {
+    font-size: 11px;
+    color: #8a9690;
+}
+
+/* Cards */
+.sch-card {
+    background: #fff;
+    border-radius: 14px;
+    padding: 18px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.sch-card h4 {
+    margin: 0 0 12px;
+    font-size: 14px;
+}
+
+/* Documents */
+.sch-docs-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.sch-docs-head h4 {
+    margin: 0;
+}
+
+.sch-docs-head span {
+    font-size: 12px;
+    color: #8a9690;
+}
+
+.sch-progress-track {
+    height: 6px;
+    background: #eef0ef;
+    border-radius: 999px;
+    overflow: hidden;
+    margin-bottom: 14px;
+}
+
+.sch-progress-fill {
+    height: 100%;
+    background: #1f7a4d;
+}
+
+.sch-doc-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.sch-doc-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: #fafbfa;
+    font-size: 13px;
+}
+
+.sch-doc-filename {
+    font-size: 11px;
+    color: #8a9690;
+    font-weight: 400;
+}
+
+.sch-status-pill {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 999px;
+    text-transform: capitalize;
+}
+
+.status-verified,
+.status-approved {
+    background: #e6f5ea;
+    color: #1f7a4d;
+}
+
+.status-uploaded,
+.status-submitted,
+.status-under_review {
+    background: #e6f0fb;
+    color: #2563eb;
+}
+
+.status-pending,
+.status-draft {
+    background: #eef0ef;
+    color: #6b7a71;
+}
+
+.status-missing,
+.status-rejected {
+    background: #fde8e8;
+    color: #d13c3c;
+}
+
+.status-action_required {
+    background: #fdf1de;
+    color: #b5720c;
+}
+
+.sch-upload-pill {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 12px;
+    border-radius: 999px;
+    background: #fde8e8;
+    color: #d13c3c;
+    cursor: pointer;
+}
+
+.sch-upload-pill:hover {
+    filter: brightness(0.97);
+}
+
+/* AI Letter */
+.sch-letter-card {
+    padding: 0;
+    overflow: hidden;
+}
+
+.sch-letter-head {
+    padding: 12px 18px;
+    background: linear-gradient(90deg, #f1e9fb, #eaf3fb);
+    font-size: 12px;
+    font-weight: 700;
+    color: #6d3fc0;
+}
+
+.sch-letter-body {
+    padding: 20px;
+    font-size: 13px;
+    line-height: 1.7;
+    color: #2b342f;
+}
+
+.sch-letter-body p {
+    margin: 0 0 12px;
+}
+
+.sch-letter-date {
+    text-align: right;
+    color: #8a9690;
+    font-size: 12px;
+}
+
+.sch-letter-subject {
+    font-weight: 700;
+}
+
+.sch-letter-signoff {
+    font-style: italic;
+    font-size: 15px;
+    color: #1f7a4d;
+    margin-bottom: 2px !important;
+}
+
+.sch-letter-signoff-title {
+    font-size: 12px;
+    color: #8a9690;
+}
+
+.sch-letter-footer {
+    padding: 14px 20px;
+    border-top: 1px solid #f0f2f0;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.sch-submit-btn {
+    background: #1f7a4d;
+    color: #fff;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.sch-submit-btn:disabled {
+    background: #b7c9bd;
+    cursor: not-allowed;
+}
+
+.sch-admin-actions {
+    display: flex;
+    gap: 10px;
+    width: 100%;
+    justify-content: flex-end;
+}
+
+.sch-approve-btn,
+.sch-reject-btn,
+.sch-cancel-btn {
+    border: none;
+    padding: 9px 16px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.sch-approve-btn {
+    background: #1f7a4d;
+    color: #fff;
+}
+
+.sch-reject-btn {
+    background: #fde8e8;
+    color: #c0392b;
+}
+
+.sch-cancel-btn {
+    background: #eef0ef;
+    color: #5b6b62;
+}
+
+.sch-reject-box {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+}
+
+.sch-reject-box input {
+    flex: 1;
+    border: 1px solid #edf1ee;
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 12px;
+    outline: none;
+}
+
+/* Tags */
+.sch-tag {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+
+.sch-tag-green {
+    background: #e6f5ea;
+    color: #1f7a4d;
+}
+
+.sch-tag-red {
+    background: #fde8e8;
+    color: #d13c3c;
+}
+
+.sch-tag-blue {
+    background: #e6f0fb;
+    color: #2563eb;
+}
+
+.sch-tag-purple {
+    background: #efe9fb;
+    color: #6d3fc0;
+}
+
+/* Messages / notifications */
+.sch-message-list,
+.sch-history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.sch-message-bubble,
+.sch-notif-bubble {
+    background: #f8fafc;
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 12px;
+}
+
+.sch-message-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: #8a9690;
+    margin-bottom: 4px;
+}
+
+.sch-notif-bubble span {
+    display: block;
+    font-size: 10px;
+    color: #8a9690;
+    margin-top: 4px;
+}
+
+/* Timeline */
+.sch-timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.sch-time-item {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    opacity: 0.55;
+}
+
+.sch-time-item.active,
+.sch-time-item.completed {
+    opacity: 1;
+}
+
+.sch-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-top: 3px;
+    flex-shrink: 0;
+}
+
+.sch-dot.green-dot {
+    background: #1f7a4d;
+}
+
+.sch-dot.empty-dot {
+    background: #d5dbd7;
+}
+
+.sch-dot.pulse-dot {
+    animation: sch-pulse 1.4s infinite;
+}
+
+@keyframes sch-pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.35;
+    }
+}
+
+.sch-time-text strong {
+    display: block;
+    font-size: 13px;
+}
+
+.sch-time-text span {
+    font-size: 11px;
+    color: #8a9690;
+}
+
+/* Decision history */
+.sch-history-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #f2f4f2;
+}
+
+.sch-history-item strong {
+    font-size: 12px;
+    display: block;
+}
+
+.sch-history-meta {
+    font-size: 11px;
+    color: #8a9690;
+}
+
+.sch-withdraw-btn {
+    width: 100%;
+    margin-bottom: 16px;
+    display: flex;
+    justify-content: center;
+}
+
+/* AI Application Generation Box */
+.sch-ai-prompt-box {
+    text-align: center;
+    padding: 48px 16px;
+}
+
+.sch-ai-prompt-box p {
+    color: #5b6b62;
+    margin-bottom: 24px;
+    font-size: 13px;
+}
+
+/* Rejection Reason Banner */
+.sch-rejection-banner {
+    background-color: #fef2f2 !important;
+    border: 1px solid #f87171 !important;
+}
+
+.sch-rejection-banner h4 {
+    color: #991b1b !important;
+    margin-top: 0;
+}
+
+.sch-rejection-banner p {
+    color: #991b1b !important;
+    margin-bottom: 0;
+    font-size: 13px;
+}
+
+/* Official Approval Letter Styling */
+.sch-approval-border {
+    border: 2px solid #10b981 !important;
+}
+
+.sch-approval-head {
+    background: #10b981 !important;
+    color: #fff !important;
+}
+
+
+/* ==================================================================
+   RESPONSIVE DESIGN (MEDIA QUERIES)
+   ================================================================== */
+
+/* TABLET & SMALL DESKTOP (Max 1100px) */
+@media (max-width: 1100px) {
+    .sch-main-grid {
+        /* Switch from 3-column to 1-column stack */
+        grid-template-columns: 1fr;
+    }
+    
+    .sch-main-grid-2col {
+        /* Switch from 2-column to 1-column stack */
+        grid-template-columns: 1fr;
+    }
+}
+
+/* LARGE PHONES & TABLETS (Max 768px) */
+@media (max-width: 768px) {
+    .sch-container {
+        padding: 16px;
+    }
+
+    .sch-header-section h2 {
+        font-size: 20px;
+    }
+
+    .sch-scheme-card-bottom {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .sch-scheme-card-bottom .sch-apply-btn,
+    .sch-scheme-card-bottom .sch-deadline-pill {
+        width: 100%;
+        text-align: center;
+        box-sizing: border-box;
+    }
+
+    .sch-form-row {
+        grid-template-columns: 1fr;
+    }
+
+    .sch-admin-actions {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .sch-admin-actions button {
+        width: 100%;
+    }
+
+    .sch-reject-box {
+        flex-direction: column;
+    }
+
+    .sch-reject-box input,
+    .sch-reject-box button {
+        width: 100%;
+    }
+
+    .sch-doc-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .sch-scheme-manage-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .sch-scheme-manage-row button {
+        width: 100%;
+    }
+    
+    .sch-toast {
+        left: 18px;
+        right: 18px;
+        text-align: center;
+        top: 10px;
+    }
+}
+
+/* SMALL PHONES (Max 480px) */
+@media (max-width: 480px) {
+    .sch-container {
+        padding: 12px;
+    }
+
+    .sch-scheme-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .sch-header-section h2 {
+        font-size: 18px;
+    }
+
+    .sch-modal {
+        padding: 16px;
+    }
+
+    .sch-modal-actions {
+        flex-direction: column;
+    }
+
+    .sch-modal-actions button {
+        width: 100%;
+    }
+
+    .sch-letter-footer {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .sch-submit-btn {
+        width: 100%;
+    }
+    
+    .sch-list-item-top {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+    }
+}

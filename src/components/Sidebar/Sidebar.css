@@ -1,0 +1,203 @@
+/* സൈഡ്ബാറിന്റെ മെയിൻ കണ്ടെയ്നർ */
+.sidebar {
+  width: 250px;
+  height: 100vh;
+  position: fixed;
+  left: 0;
+  top: 0;
+  background-color: #ffffff;
+  border-right: 1px solid #e4dcc8;
+  display: flex;
+  flex-direction: column;
+  padding: 20px 0;
+  overflow-y: auto;
+  font-family: 'IBM Plex Sans', sans-serif;
+  z-index: 1000;
+  transition: transform 0.3s ease;
+}
+
+/* ഹെഡിങ് ഭാഗം */
+.sidebar-brand {
+  padding: 0 20px 20px 20px;
+  border-bottom: 1px solid #f0ebe1;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.sidebar-brand-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-brand h2 {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1b4332;
+  margin: 0;
+}
+
+.sidebar-subtitle {
+  font-size: 11px;
+  color: #7f8c8d;
+  font-weight: 500;
+  display: block;
+  margin-top: 4px;
+}
+
+/* Sidebar X button (hidden on desktop) */
+.sidebar-close {
+  display: none;
+  background: transparent;
+  border: none;
+  font-size: 22px;
+  color: #1b4332;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  margin-top: -2px;
+}
+
+/* മെനു ലിസ്റ്റ് */
+.sidebar-menu {
+  list-style: none;
+  padding: 15px 10px;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex: 1;
+}
+
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 15px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  color: #4a5568;
+  background-color: transparent;
+  transition: all 0.2s ease-in-out;
+}
+
+.sidebar-item i {
+  font-size: 16px;
+}
+
+.sidebar-item:hover {
+  background-color: #f6f1e4;
+  color: #1b4332;
+}
+
+/* ആക്ടീവ് ആയ മെനുവിന്റെ സ്റ്റൈൽ */
+.sidebar-item.active {
+  background-color: #d8f3dc;
+  color: #1b4332;
+  font-weight: 600;
+}
+
+/* താഴെയുള്ള ബട്ടണുകളുടെ കണ്ടെയ്നർ */
+.sidebar-footer {
+  padding: 0 15px;
+  margin-top: auto;
+}
+
+.emergency-btn {
+  width: 100%;
+  background-color: #dc3545;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-bottom: 10px;
+  transition: background-color 0.2s;
+}
+
+.emergency-btn:hover {
+  background-color: #c82333;
+}
+
+.logout-btn {
+  width: 100%;
+  background: none;
+  border: none;
+  color: #dc3545;
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 14px;
+  border-radius: 8px;
+  transition: background-color 0.2s;
+}
+
+.logout-btn:hover {
+  background-color: #fff5f5;
+}
+
+/* Sidebar Dark Overlay (Mobile only) */
+.sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 999;
+  opacity: 0;
+  animation: fadeIn 0.3s forwards;
+}
+
+@keyframes fadeIn {
+  to {
+    opacity: 1;
+  }
+}
+
+/* Safety Fallback: Force standard Desktop View above 768px */
+@media (min-width: 769px) {
+  .sidebar-overlay {
+    display: none !important;
+  }
+  .sidebar {
+    transform: translateX(0) !important;
+  }
+}
+
+/* Responsive Behavior for Mobile/Tablet */
+@media (max-width: 768px) {
+  .sidebar {
+    transform: translateX(-100%);
+  }
+  
+  .sidebar.sidebar-open {
+    transform: translateX(0);
+  }
+  
+  .sidebar-close {
+    display: block;
+  }
+}
+/* Add to the bottom of Sidebar.css */
+@media (max-width: 768px) {
+  body, html {
+    overflow-x: hidden;
+  }
+  
+  /* Forces the main layout container to reset its margin on mobile */
+  #root > div > div:nth-child(2),
+  .main-content,
+  .app-content {
+    margin-left: 0 !important;
+    padding-left: 0 !important;
+    width: 100% !important;
+  }
+}

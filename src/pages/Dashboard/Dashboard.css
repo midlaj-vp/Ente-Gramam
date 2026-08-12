@@ -1,0 +1,457 @@
+/* Dashboard Main Container */
+.dash-container {
+  padding: 24px;
+  background-color: #f8fafc;
+  min-height: 100vh;
+  font-family: 'Inter', sans-serif;
+  color: #1e293b;
+}
+
+/* Role Switcher Bar */
+.role-switcher-bar {
+  display: flex;
+  gap: 10px;
+  background: #ffffff;
+  padding: 12px 16px;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.role-switcher-bar button {
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-weight: 500;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+/* Hero Banner */
+.dash-hero {
+  background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%);
+  color: #ffffff;
+  padding: 32px;
+  border-radius: 16px;
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 12px rgba(27, 94, 32, 0.15);
+}
+
+.dash-hero h1 {
+  font-size: 26px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.dash-hero p {
+  font-size: 15px;
+  opacity: 0.9;
+  max-width: 600px;
+  line-height: 1.5;
+}
+
+.dash-role-badge {
+  display: inline-block;
+  margin-top: 16px;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.wave {
+  display: inline-block;
+  animation: wave-animation 2s infinite;
+}
+
+@keyframes wave-animation {
+  0% { transform: rotate(0deg); }
+  20% { transform: rotate(14deg); }
+  40% { transform: rotate(-8deg); }
+  60% { transform: rotate(14deg); }
+  100% { transform: rotate(0deg); }
+}
+
+/* Statistics Cards */
+.dash-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 20px;
+  margin-bottom: 32px;
+}
+
+.dash-stat-card {
+  background: #ffffff;
+  padding: 20px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  border: 1px solid #f1f5f9;
+}
+
+.dash-stat-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Tone Colors for Icons */
+.dash-stat-icon.tone-blue { background: #eff6ff; color: #2563eb; }
+.dash-stat-icon.tone-green { background: #f0fdf4; color: #16a34a; }
+.dash-stat-icon.tone-orange { background: #fff7ed; color: #ea580c; }
+.dash-stat-icon.tone-red { background: #fef2f2; color: #dc2626; }
+
+.dash-stat-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.dash-stat-label {
+  font-size: 13px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+/* Quick Actions Section */
+.dash-section {
+  margin-bottom: 28px;
+}
+
+.dash-section h2 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #0f172a;
+  margin-bottom: 16px;
+}
+
+.dash-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.dash-action-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  padding: 18px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+  width: 100%;
+}
+
+.dash-action-card:hover {
+  border-color: #16a34a;
+  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.08);
+  transform: translateY(-2px);
+}
+
+.dash-action-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dash-action-icon.tone-green { background: #f0fdf4; color: #16a34a; }
+.dash-action-icon.tone-red { background: #fef2f2; color: #dc2626; }
+.dash-action-icon.tone-pink { background: #fdf2f8; color: #db2777; }
+.dash-action-icon.tone-purple { background: #f5f3ff; color: #7c3aed; }
+.dash-action-icon.tone-blue { background: #eff6ff; color: #2563eb; }
+
+.dash-action-card span {
+  font-size: 14px;
+  font-weight: 600;
+  color: #334155;
+}
+
+/* Grid Layout for News and Sidebar */
+.dash-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 24px;
+}
+
+@media (max-width: 900px) {
+  .dash-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.dash-section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.view-all-link {
+  font-size: 13px;
+  color: #16a34a;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* News Cards */
+.dash-news-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.dash-news-card {
+  background: #ffffff;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.dash-news-image {
+  height: 120px;
+  background: #cbd5e1;
+}
+
+.dash-news-body {
+  padding: 16px;
+}
+
+.dash-news-tag {
+  font-size: 10px;
+  font-weight: 700;
+  background: #f0fdf4;
+  color: #16a34a;
+  padding: 3px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+.dash-news-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f172a;
+  margin: 8px 0 12px 0;
+  line-height: 1.4;
+}
+
+.dash-news-meta {
+  font-size: 12px;
+  color: #64748b;
+}
+
+/* Complaint Progress Timeline Card */
+.dash-complaint-card {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.dash-complaint-head {
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f172a;
+  margin-bottom: 16px;
+}
+
+.dash-timeline {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  position: relative;
+}
+
+.dash-timeline::before {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: 6px;
+  bottom: 6px;
+  width: 2px;
+  background: #e2e8f0;
+}
+
+.dash-timeline li {
+  position: relative;
+  padding-left: 24px;
+  margin-bottom: 16px;
+}
+
+.dash-timeline li:last-child {
+  margin-bottom: 0;
+}
+
+.dash-timeline .dot {
+  position: absolute;
+  left: 0;
+  top: 4px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2px solid #cbd5e1;
+}
+
+.dash-timeline li.done .dot {
+  background: #16a34a;
+  border-color: #16a34a;
+}
+
+.dash-timeline li.pending .dot {
+  background: #ffffff;
+  border-color: #f59e0b;
+}
+
+.step-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.step-at, .step-note {
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+/* Sidebar & Contacts */
+.dash-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.dash-contacts {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.dash-contact-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.dash-contact-row:last-child {
+  border-bottom: none;
+}
+
+.dash-contact-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: #334155;
+}
+
+.dash-contact-phone {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #16a34a;
+  text-decoration: none;
+  background: #f0fdf4;
+  padding: 4px 10px;
+  border-radius: 6px;
+}
+
+/* Representative Card */
+.dash-rep-card {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.dash-rep-avatar {
+  width: 44px;
+  height: 44px;
+  background: #e2e8f0;
+  color: #334155;
+  font-weight: 700;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+}
+
+.dash-rep-label {
+  font-size: 11px;
+  color: #64748b;
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.dash-rep-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+  margin-top: 2px;
+}
+
+.dash-rep-ward {
+  font-size: 12px;
+  color: #16a34a;
+  font-weight: 500;
+}
+
+.dash-rep-msg {
+  width: 100%;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  padding: 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.dash-rep-msg:hover {
+  background: #f1f5f9;
+}
+/* Add this to your App.css or main layout CSS file */
+
+@media (max-width: 768px) {
+  /* Replace '.main-content' with the actual class name of your wrapper div */
+  .main-content {
+    margin-left: 0 !important;
+    padding-left: 0 !important;
+    width: 100% !important;
+  }
+}

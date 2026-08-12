@@ -1,0 +1,466 @@
+.blood-donor-wrapper {
+    padding: 24px;
+    background-color: #f8f9fa;
+    min-height: 100vh;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.donor-top-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #ffffff;
+    padding: 20px 24px;
+    border-radius: 12px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.donor-top-header h2 {
+    font-size: 22px;
+    color: #1a1a1a;
+    margin-bottom: 5px;
+}
+
+.donor-top-header p {
+    color: #666;
+    font-size: 14px;
+}
+
+.donor-stats-boxes {
+    display: flex;
+    gap: 15px;
+}
+
+.stat-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #f1f3f5;
+    padding: 12px 18px;
+    border-radius: 10px;
+}
+
+.stat-icon {
+    font-size: 20px;
+}
+
+.stat-card h4 {
+    font-size: 11px;
+    color: #555;
+    margin: 0;
+}
+
+.stat-card h3 {
+    font-size: 18px;
+    color: #111;
+    margin: 0;
+}
+
+.urgent-alert-banner {
+    background: linear-gradient(135deg, #fdf2f2 0%, #fae1e1 100%);
+    border: 1px solid #f5c6cb;
+    padding: 16px 20px;
+    border-radius: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.urgent-badge {
+    background: #dc3545;
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 4px;
+    margin-right: 10px;
+}
+
+.urgent-time {
+    font-size: 12px;
+    color: #666;
+}
+
+.urgent-left h4 {
+    color: #a71d2a;
+    margin: 6px 0 2px 0;
+    font-size: 16px;
+}
+
+.urgent-left p {
+    font-size: 13px;
+    color: #495057;
+    margin: 0;
+}
+
+.btn-contact-attendant {
+    background: #dc3545;
+    color: white;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-contact-attendant:hover {
+    background: #bd2130;
+}
+
+.donor-filter-bar {
+    background: white;
+    padding: 16px 20px;
+    border-radius: 12px;
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    margin-bottom: 24px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    flex-wrap: wrap;
+}
+
+.filter-input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    flex: 1;
+    min-width: 200px;
+}
+
+.filter-input-group label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #6c757d;
+}
+
+.filter-input-group input, .filter-input-group select {
+    padding: 9px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    font-size: 14px;
+    outline: none;
+}
+
+.filter-checkbox-group {
+    display: flex;
+    align-items: center;
+    font-size: 14px;
+    font-weight: 500;
+    color: #333;
+    padding-top: 15px;
+}
+
+.donors-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+}
+
+.register-promo-card {
+    background: linear-gradient(135deg, #0f5132 0%, #198754 100%);
+    color: white;
+    padding: 24px;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-shadow: 0 4px 6px rgba(25, 135, 84, 0.2);
+}
+
+.promo-icon {
+    font-size: 28px;
+    margin-bottom: 10px;
+}
+
+.register-promo-card h3 {
+    font-size: 20px;
+    margin-bottom: 8px;
+}
+
+.register-promo-card p {
+    font-size: 13px;
+    line-height: 1.5;
+    opacity: 0.9;
+    margin-bottom: 15px;
+}
+
+.btn-become-donor {
+    background: white;
+    color: #198754;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    align-self: flex-start;
+    transition: background 0.2s;
+}
+
+.btn-become-donor:hover {
+    background: #f8f9fa;
+}
+
+.donor-card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    border: 1px solid #e9ecef;
+}
+
+.donor-card-top {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 15px;
+}
+
+.donor-avatar {
+    font-size: 24px;
+    background: #e9ecef;
+    padding: 10px;
+    border-radius: 50%;
+}
+
+.donor-card-top h4 {
+    font-size: 16px;
+    margin: 0 0 2px 0;
+    color: #212529;
+}
+
+.donor-card-top p {
+    font-size: 12px;
+    color: #6c757d;
+    margin: 0;
+}
+
+.donor-bg-badge {
+    margin-left: auto;
+    background: #eef2ff;
+    color: #0d6efd;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+.donor-card-body {
+    border-top: 1px solid #f1f3f5;
+    border-bottom: 1px solid #f1f3f5;
+    padding: 12px 0;
+    margin-bottom: 15px;
+}
+
+.donor-info-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    color: #495057;
+    margin-bottom: 6px;
+}
+
+.recent-donation-tag {
+    background: #fff3cd;
+    color: #856404;
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    text-align: center;
+    font-weight: 600;
+    margin-top: 8px;
+}
+
+.donor-card-footer {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-send-request {
+    flex: 1;
+    background: #fff;
+    color: #198754;
+    border: 1px solid #198754;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-send-request:hover {
+    background: #198754;
+    color: white;
+}
+
+.btn-notify-disabled {
+    flex: 1;
+    background: #e9ecef;
+    color: #6c757d;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: not-allowed;
+}
+
+.btn-delete {
+    background: #f8d7da;
+    color: #842029;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+/* Modal Styles */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-box {
+    background: white;
+    padding: 24px;
+    border-radius: 12px;
+    width: 100%;
+    max-width: 450px;
+    position: relative;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.close-btn {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: #666;
+}
+
+.modal-box h2 {
+    font-size: 20px;
+    margin-bottom: 5px;
+    color: #212529;
+}
+
+.modal-box p {
+    font-size: 13px;
+    color: #6c757d;
+    margin-bottom: 20px;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 5px;
+}
+
+.form-group input, .form-group select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    font-size: 14px;
+    outline: none;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.cancel-btn {
+    background: #6c757d;
+    color: white;
+    border: none;
+    padding: 9px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.submit-btn {
+    background: #198754;
+    color: white;
+    border: none;
+    padding: 9px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.urgent-badge-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-edit-urgent {
+    background: #6c757d;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 13px;
+}
+
+.btn-edit-urgent:hover {
+    background: #5a6268;
+}
+
+.btn-remove-urgent {
+    background: transparent;
+    color: #a71d2a;
+    border: 1px solid #a71d2a;
+    font-size: 18px;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-remove-urgent:hover {
+    background: #a71d2a;
+    color: white;
+}
+
+.urgent-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}

@@ -1,0 +1,527 @@
+/* മൊത്തത്തിലുള്ള പേജ് ലേഔട്ട് */
+.signup-page {
+  padding: 40px 20px;
+  background-color: #f4f7f6;
+  min-height: 100vh;
+  font-family: sans-serif;
+}
+
+/* കാർഡിന്റെ സ്റ്റൈൽ */
+.signup-card {
+  background: white;
+  max-width: 1000px;
+  margin: auto;
+  border-radius: 20px;
+  padding: 15px;
+  /* കാർഡിന്റെ മൊത്തത്തിലുള്ള പാഡിങ് കുറച്ചു */
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+/* Role Toggle സ്റ്റൈൽ */
+.role-toggle-wrap {
+  margin: 15px 15px 30px 15px;
+}
+
+.role-toggle {
+  display: flex;
+  gap: 15px;
+  /* margin-left: 35%; */
+  padding: 15px;
+}
+
+.role-box {
+  width: 35%;
+  height: auto;
+  min-height: 100px;
+  box-shadow: rgba(0, 0, 0, 0.1) 0px 4px 12px;
+  border: 0.5px solid lightgreen;
+  border-radius: 30px;
+  align-items: center;
+  margin-left: 45%;
+}
+
+.role-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 25px;
+  border: 1px solid #ddd;
+  background: #f5f1ed;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: 0.3s;
+}
+
+.role-btn.active {
+  background: #1f7a3d;
+  color: white;
+  border-color: #1f7a3d;
+}
+
+.signup-grid {
+  display: grid;
+  grid-template-columns: 0.85fr 1.15fr;
+  gap: 40px;
+}
+
+.signup-left {
+  position: relative;
+  border-radius: 20px;
+  margin-top: -130px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: 40px 30px;
+  background-color: #EAF4EE;
+}
+
+.left-content-wrapper {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  margin-top: -40px;
+}
+
+.village-illustration {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+.village-illustration img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: bottom center;
+  display: block;
+}
+
+/* .brand-icon-color {
+  color: #28392d;
+} */
+.logo img {
+  width: 150px;
+  height: auto;
+  margin-left: 50px;
+
+}
+
+.brand-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand-name {
+  font-weight: bold;
+  font-size: 2.2rem;
+  line-height: 1.2;
+  color: linear-gradient(135deg, #0f1010 0%, #238443 100%);
+}
+
+.brand-tagline {
+  color: #3e4042;
+  font-size: 0.9rem;
+  margin-bottom: 20px;
+}
+
+.join-title {
+  font-size: 1.4rem;
+  color: #151313;
+  margin-bottom: 5px;
+}
+
+.join-underline {
+  width: 40px;
+  height: 3px;
+  background: #1F7A3D;
+  margin-bottom: 15px;
+  border-radius: 2px;
+}
+
+.join-desc {
+  font-size: 0.9rem;
+  color: #32373c;
+  margin-bottom: 30px;
+  line-height: 1.4;
+}
+
+.feature-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.feature-icon {
+  margin-top: 2px;
+}
+
+.feature-title {
+  font-weight: bold;
+  color: #333;
+  font-size: 0.95rem;
+}
+
+.feature-desc {
+  font-size: 0.85rem;
+  color: #777;
+}
+
+
+.signup-right {
+  padding: 20px 30px 20px 0;
+}
+
+.form-title {
+  font-size: 1.8rem;
+  margin-bottom: 5px;
+  color: #222;
+}
+
+.form-subtitle {
+  color: #777;
+  margin-bottom: 25px;
+  font-size: 0.95rem;
+}
+
+.field-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  margin-bottom: 25px;
+}
+
+.span-2 {
+  grid-column: span 2;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.field label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #444;
+}
+
+.input-wrap {
+  display: flex;
+  align-items: center;
+  border: 1px solid #ddd;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #fafafa;
+  transition: border 0.2s;
+}
+
+.input-wrap:focus-within {
+  border-color: #1F7A3D;
+}
+
+.input-wrap .icon {
+  color: #888;
+  display: flex;
+  align-items: center;
+}
+
+.input-wrap input,
+.input-wrap select {
+  border: none;
+  background: transparent;
+  outline: none;
+  margin-left: 10px;
+  width: 100%;
+  color: #333;
+}
+
+.toggle-eye {
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: #888;
+  display: flex;
+  align-items: center;
+}
+
+/* ഫോം മറ്റുള്ള സ്റ്റൈലുകൾ */
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: bold;
+  margin-bottom: 15px;
+  color: #333;
+}
+
+.rule {
+  flex: 1;
+  height: 1px;
+  background: #eee;
+}
+
+.divider {
+  margin: 25px 0;
+  border: 0;
+  border-top: 1px solid #eee;
+}
+
+.terms-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.terms-row input {
+  width: 16px;
+  height: 16px;
+  accent-color: #1F7A3D;
+}
+
+
+/* ബാക്ക്ഗ്രൗണ്ട് ബ്ലർ ചെയ്ത് ഡാർക്ക് ആക്കാൻ */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  /* പുറത്തുള്ള ഭാഗം ഇരുണ്ടതാക്കാൻ */
+  backdrop-filter: blur(5px);
+  /* ബാക്ക്ഗ്രൗണ്ട് ബ്ലർ ചെയ്യാൻ */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+/* ടേംസ് ആൻഡ് കണ്ടീഷൻസ് കാർഡ് */
+.modal-card {
+  background: #ffffff;
+  padding: 25px;
+  width: 90%;
+  max-width: 500px;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.modal-card h2 {
+  margin-bottom: 15px;
+  color: #333333;
+  font-size: 1.5rem;
+}
+
+.modal-card p {
+  color: #666666;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  margin-bottom: 20px;
+  max-height: 250px;
+  overflow-y: auto;
+  /* വലിയ കണ്ടന്റ് ആണെങ്കിൽ സ്ക്രോൾ ചെയ്യാൻ */
+}
+
+/* ക്ലോസ് ബട്ടൺ */
+.modal-card button {
+  background-color: #2c8a49;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+  display: block;
+  width: 100%;
+  transition: background-color 0.2s;
+}
+
+.modal-card button:hover {
+  background-color: #236d39;
+}
+
+/* കാർഡ് ഓപ്പൺ ആകുമ്പോൾ ചെറിയൊരു ആനിമേഷന് വേണ്ടി */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.submit-btn {
+  width: 100%;
+  padding: 14px;
+  background: #1f7a3d;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  transition: background 0.3s;
+}
+
+.submit-btn:hover:not(:disabled) {
+  background: #165b2d;
+}
+
+.submit-btn:disabled {
+  background: #a5d2b5;
+  cursor: not-allowed;
+}
+
+.error-msg {
+  color: red;
+  font-size: 12px;
+  margin-top: 5px;
+  display: block;
+}
+
+.login-hint {
+  text-align: center;
+  margin-top: 20px;
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.link {
+  color: #1f7a3d;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.success-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.success-modal-card {
+    background: #ffffff;
+    padding: 30px;
+    border-radius: 16px;
+    text-align: center;
+    width: 320px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    animation: scaleUp 0.3s ease-in-out;
+}
+
+.success-icon-box {
+    width: 50px;
+    height: 50px;
+    background: #28a745;
+    color: white;
+    font-size: 24px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 50%;
+    margin: 0 auto 15px auto;
+}
+
+.success-modal-card h2 {
+    margin-bottom: 10px;
+    color: #333;
+    font-size: 22px;
+}
+
+.success-modal-card p {
+    color: #666;
+    margin-bottom: 20px;
+    font-size: 14px;
+}
+
+.success-ok-btn {
+    background: #0056b3;
+    color: white;
+    border: none;
+    padding: 10px 25px;
+    font-size: 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    width: 100%;
+    font-weight: 600;
+    transition: background 0.2s;
+}
+
+.success-ok-btn:hover {
+    background: #004085;
+}
+
+@keyframes scaleUp {
+    from {
+        transform: scale(0.8);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@media (max-width: 850px) {
+  .signup-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .signup-left {
+    display: none;
+  }
+
+  .signup-right {
+    padding: 20px;
+  }
+
+  .field-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .role-box {
+    width: 80%;
+    margin-left: 5%;
+    border-radius: 20px;
+  }
+
+  .role-btn {
+    padding: 8px 15px;
+    font-size: 0.85rem;
+    align-items: center;
+    display: flex;
+    justify-content: center;
+  }
+
+
+  .span-2 {
+    grid-column: span 1;
+  }
+}

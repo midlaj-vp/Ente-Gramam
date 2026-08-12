@@ -1,0 +1,496 @@
+.login-container {
+  position: relative;
+  display: flex;
+  width: 600px;
+  max-width: 100%;
+  margin: 20px auto;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 16px 36px rgba(20, 60, 35, 0.14);
+}
+
+/* പഴയ flex-direction: row-reverse ഒഴിവാക്കി, transform ഉപയോഗിച്ച് സ്മൂത്ത് ആയി
+   പാനലുകൾ സ്ഥാനം മാറ്റുന്നു (flex-direction ബ്രൗസർ ആനിമേറ്റ് ചെയ്യില്ല) */
+.login-left,
+.login-right {
+  transition: transform 0.45s cubic-bezier(0.65, 0, 0.35, 1);
+  will-change: transform;
+}
+
+.login-left {
+  position: relative;
+  width: 42%;
+  background: linear-gradient(180deg, #eef7f0 0%, #e4f2e8 100%);
+  padding: 22px 26px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transform: translateX(0);
+}
+
+.login-right {
+  width: 58%;
+  background: white;
+  padding: 22px 34px;
+  transform: translateX(0);
+}
+
+.login-container.reverse .login-left {
+  transform: translateX(138.1%);
+}
+
+.login-container.reverse .login-right {
+  transform: translateX(-72.414%);
+}
+
+/* ഇടത് മൂലയിലെ ഇല അലങ്കാരം */
+.corner-leaves {
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  width: 66px;
+  height: 66px;
+  color: #6fae7f;
+  opacity: 0.9;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.brand-row {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin-bottom: 8px;
+}
+
+.logo-badge {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #f2fbf4;
+  border: 2px solid #3ba75f;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #2c8a49;
+}
+
+.brand-name {
+  font-weight: 800;
+  font-size: 1.05rem;
+  line-height: 1.1;
+  color: #1c6b39;
+  letter-spacing: 0.3px;
+}
+
+.brand-tagline {
+  font-size: 0.68rem;
+  color: #5c6a60;
+  margin: 0 0 10px;
+}
+
+.leaf-divider {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #8fbf9c;
+  margin-bottom: 10px;
+}
+
+.leaf-divider .line {
+  flex: 1;
+  height: 1px;
+  background: #cfe4d5;
+}
+
+.headline-block {
+  text-align: center;
+  animation: headline-fade-in 0.4s ease both;
+  margin-bottom: 10px;
+}
+
+@keyframes headline-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.login-left h2 {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #1c6b39;
+  margin: 0 0 5px;
+}
+
+.login-left .headline-block p {
+  font-size: 0.78rem;
+  color: #566058;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.features {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.feat {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+}
+
+.feat-icon {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  background: #dcf0e1;
+  color: #2c8a49;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.feat-title {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #263229;
+}
+
+.feat-desc {
+  font-size: 0.7rem;
+  color: #6b7870;
+}
+
+.village-illustration {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: linear-gradient(180deg, #dff0e3 0%, #bfe0cd 100%);
+}
+
+.village-illustration img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+}
+
+.village-illustration::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.86) 0%,
+    rgba(255, 255, 255, 0.72) 45%,
+    rgba(255, 255, 255, 0.4) 75%,
+    rgba(255, 255, 255, 0.18) 100%
+  );
+}
+
+.left-content {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* --- വലതുവശം --- */
+
+.toggle-box {
+  display: flex;
+  gap: 9px;
+  margin-bottom: 14px;
+}
+
+.toggle-box button {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px;
+  border-radius: 10px;
+  border: 1.5px solid transparent;
+  background: #f2f3f5;
+  color: #6b7178;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.25s ease, border-color 0.25s ease, color 0.25s ease;
+}
+
+.toggle-box button.active {
+  background: #ffffff;
+  border-color: #2c8a49;
+  color: #1c6b39;
+}
+
+.toggle-box button .active-underline {
+  position: absolute;
+  bottom: -1.5px;
+  left: 50%;
+  width: 28px;
+  height: 3px;
+  border-radius: 2px;
+  background: #2c8a49;
+  transform: translateX(-50%) scaleX(0);
+  transition: transform 0.25s ease;
+}
+
+.toggle-box button.active .active-underline {
+  transform: translateX(-50%) scaleX(1);
+}
+
+.form-heading {
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+.form-heading h1 {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #1a1a1a;
+  margin: 0 0 4px;
+}
+
+.form-heading p {
+  font-size: 0.82rem;
+  color: #7a7f7c;
+  margin: 0;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+}
+
+label {
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: #3a3f3c;
+  margin-bottom: 4px;
+  margin-top: 8px;
+}
+
+.input-field {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  border: 1px solid #e2e5e3;
+  border-radius: 10px;
+  padding: 8px 12px;
+  background: #fbfcfb;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.input-field:focus-within {
+  border-color: #2c8a49;
+  box-shadow: 0 0 0 3px rgba(44, 138, 73, 0.12);
+}
+
+.input-field svg {
+  color: #3ba75f;
+  flex-shrink: 0;
+}
+
+.input-field input {
+  border: none;
+  outline: none;
+  background: transparent;
+  flex: 1;
+  min-width: 0;
+  font-size: 0.92rem;
+  color: #2b2f2d;
+}
+
+.input-field input::placeholder {
+  color: #9aa19c;
+}
+
+.input-field .toggle-eye {
+  display: flex;
+  cursor: pointer;
+  color: #8b918e;
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+.form-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+  font-size: 0.78rem;
+}
+
+.remember-me {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #3a3f3c;
+  cursor: pointer;
+}
+
+.remember-me input {
+  width: 16px;
+  height: 16px;
+  accent-color: #2c8a49;
+  cursor: pointer;
+}
+
+.forgot-link {
+  color: #2c8a49;
+  font-weight: 600;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+}
+
+.login-btn {
+  margin-top: 12px;
+  padding: 10px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(90deg, #379a58 0%, #1c6b39 100%);
+  color: white;
+  font-weight: 700;
+  font-size: 0.92rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: filter 0.2s ease, transform 0.15s ease;
+}
+
+.login-btn:hover {
+  filter: brightness(1.05);
+}
+
+.login-btn:active {
+  transform: scale(0.99);
+}
+
+.or-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 12px 0 10px;
+  color: #9aa19c;
+  font-size: 0.76rem;
+}
+
+.or-divider .line {
+  flex: 1;
+  height: 1px;
+  background: #e6e8e6;
+}
+
+.signup-hint {
+  text-align: center;
+  font-size: 0.8rem;
+  color: #6b716e;
+}
+
+.signup-hint .link {
+  display: block;
+  margin: 4px auto 0;
+  color: #2c8a49;
+  font-weight: 700;
+  cursor: pointer;
+  background: none;
+  border: none;
+  font: inherit;
+  padding: 0;
+}
+
+.form-error {
+  margin: 8px 0 0;
+  font-size: 0.78rem;
+  color: #c0392b;
+}
+/* Login Form Rows & Remember Me Styling */
+.form-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    font-size: 14px;
+}
+
+.remember-me {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    color: #4a5568;
+    font-weight: 500;
+    user-select: none;
+}
+
+.remember-me input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: #2c8a49; /* നിങ്ങളുടെ ആപ്ലിക്കേഷന്റെ ഗ്രീൻ കളർ തീമിന് അനുസരിച്ച് മാറ്റാം */
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+.forgot-link {
+    background: none;
+    border: none;
+    color: #2c8a49;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0;
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.forgot-link:hover {
+    text-decoration: underline;
+    color: #1e5f32;
+}
+
+@media (max-width: 720px) {
+  .login-container,
+  .login-container.reverse {
+    flex-direction: column;
+    width: 92vw;
+  }
+
+  .login-left,
+  .login-right {
+    width: 100%;
+    transform: translateX(0) !important;
+    transition: none;
+  }
+
+  .village-illustration {
+    display: none;
+  }
+  .features
+  {
+    display: none;
+  }
+}
