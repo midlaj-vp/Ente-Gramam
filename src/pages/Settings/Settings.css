@@ -7,6 +7,32 @@
     box-sizing: border-box;
 }
 
+/* 🌙 Dark Mode Styles */
+body.dark-theme,
+[data-theme="dark"] {
+  background-color: #0f172a !important;
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .feedback-wrapper,
+[data-theme="dark"] .section-block,
+[data-theme="dark"] .general-form-card {
+  background-color: #1e293b !important;
+  color: #f8fafc !important;
+  border-color: #334155 !important;
+}
+
+[data-theme="dark"] select,
+[data-theme="dark"] input[type="text"] {
+  background-color: #334155 !important;
+  color: #ffffff !important;
+  border-color: #475569 !important;
+}
+
+[data-theme="dark"] .danger-card {
+  background-color: #31121d !important;
+}
+
 .feedback-top-header {
     display: flex;
     justify-content: space-between;
@@ -93,5 +119,8 @@
 @media (max-width: 768px) {
     .feedback-wrapper {
         padding: 16px;
+    }
+    .feedback-top-header p{
+    display: none;
     }
 }

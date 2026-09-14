@@ -115,6 +115,7 @@
     opacity: 0;
     transform: translateY(6px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -190,13 +191,11 @@
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.86) 0%,
-    rgba(255, 255, 255, 0.72) 45%,
-    rgba(255, 255, 255, 0.4) 75%,
-    rgba(255, 255, 255, 0.18) 100%
-  );
+  background: linear-gradient(180deg,
+      rgba(255, 255, 255, 0.86) 0%,
+      rgba(255, 255, 255, 0.72) 45%,
+      rgba(255, 255, 255, 0.4) 75%,
+      rgba(255, 255, 255, 0.18) 100%);
 }
 
 .left-content {
@@ -428,51 +427,157 @@ label {
   font-size: 0.78rem;
   color: #c0392b;
 }
+
 /* Login Form Rows & Remember Me Styling */
 .form-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-    font-size: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  font-size: 14px;
 }
 
 .remember-me {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    cursor: pointer;
-    color: #4a5568;
-    font-weight: 500;
-    user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  color: #4a5568;
+  font-weight: 500;
+  user-select: none;
 }
 
 .remember-me input[type="checkbox"] {
-    width: 18px;
-    height: 18px;
-    accent-color: #2c8a49; /* നിങ്ങളുടെ ആപ്ലിക്കേഷന്റെ ഗ്രീൻ കളർ തീമിന് അനുസരിച്ച് മാറ്റാം */
-    cursor: pointer;
-    border-radius: 4px;
+  width: 18px;
+  height: 18px;
+  accent-color: #2c8a49;
+  /* നിങ്ങളുടെ ആപ്ലിക്കേഷന്റെ ഗ്രീൻ കളർ തീമിന് അനുസരിച്ച് മാറ്റാം */
+  cursor: pointer;
+  border-radius: 4px;
 }
 
 .forgot-link {
-    background: none;
-    border: none;
-    color: #2c8a49;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    padding: 0;
-    text-decoration: none;
-    transition: color 0.2s ease;
+  background: none;
+  border: none;
+  color: #2c8a49;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: none;
+  transition: color 0.2s ease;
 }
 
 .forgot-link:hover {
-    text-decoration: underline;
-    color: #1e5f32;
+  text-decoration: underline;
+  color: #1e5f32;
+}
+
+/* Ensure main container handles absolute child elements */
+.login-container {
+  position: relative;
+  overflow: hidden;
+}
+
+/* 🟢 Fullscreen Glassmorphism Overlay */
+.login-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(8px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  animation: fadeInOverlay 0.3s ease-in-out forwards;
+}
+
+/* Center Card Box */
+.overlay-card {
+  background: #ffffff;
+  padding: 35px 45px;
+  border-radius: 18px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+  animation: popInCard 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.overlay-card h3 {
+  margin: 5px 0 0 0;
+  font-size: 22px;
+  color: #1e293b;
+  font-weight: 600;
+}
+
+.overlay-card p {
+  margin: 0;
+  font-size: 14px;
+  color: #64748b;
+}
+
+/* Spinner & Checkmark */
+.spinner-large {
+  color: #2e7d32;
+  animation: spinRotate 0.8s linear infinite;
+}
+
+.checkmark-large {
+  color: #22c55e;
+  animation: scaleCheckIcon 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+/* Keyframe Animations */
+@keyframes spinRotate {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes scaleCheckIcon {
+  0% {
+    transform: scale(0);
+  }
+
+  100% {
+    transform: scale(1.15);
+  }
+}
+
+@keyframes fadeInOverlay {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes popInCard {
+  from {
+    transform: scale(0.85);
+    opacity: 0;
+  }
+
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 @media (max-width: 720px) {
+
   .login-container,
   .login-container.reverse {
     flex-direction: column;
@@ -489,8 +594,8 @@ label {
   .village-illustration {
     display: none;
   }
-  .features
-  {
+
+  .features {
     display: none;
   }
 }

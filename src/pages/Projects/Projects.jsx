@@ -1,27 +1,31 @@
 import React, { useState, useEffect } from "react";
+import api from "../../axiosInstance"; // 👈 1. നമ്മൾ ഉണ്ടാക്കിയ Axios Instance ഇമ്പോർട്ട് ചെയ്യുന്നു
 import "./Projects.css";
 
 export default function VillageProjectsPage() {
     const [projects, setProjects] = useState([]);
     const [userRole, setUserRole] = useState("citizen");
-    const [currentWard, setCurrentWard] = useState("Ward 07");
-    
-    // Filter states
+    const [currentWard, setCurrentWard] = useState("");
+    const [loading, setLoading] = useState(true);
+
     const [activeTab, setActiveTab] = useState("All Projects");
     const [searchQuery, setSearchQuery] = useState("");
-    
-    // Modal states for Add/Edit Project
+
     const [showModal, setShowModal] = useState(false);
     const [editingProjectId, setEditingProjectId] = useState(null);
     const [title, setTitle] = useState("");
-    const [category, setCategory] = useState("Ongoing"); // Ongoing, Completed, Upcoming / Planning Phase
-    const [ward, setWard] = useState("Ward 07");
+    const [category, setCategory] = useState("Ongoing");
+    const [ward, setWard] = useState("");
     const [description, setDescription] = useState("");
     const [progress, setProgress] = useState(50);
     const [budget, setBudget] = useState("");
-    const [imageFile, setImageFile] = useState("");
+    
+    const [startDate, setStartDate] = useState("");
+    const [endDate, setEndDate] = useState("");
+    
+    const [selectedFile, setSelectedFile] = useState(null);
+    const [imagePreview, setImagePreview] = useState("");
 
-    // Details Modal State
     const [selectedProject, setSelectedProject] = useState(null);
 
     useEffect(() => {
@@ -39,125 +43,77 @@ export default function VillageProjectsPage() {
         const role = (loggedInUser.role || localStorage.getItem("userRole") || "citizen").toLowerCase();
         setUserRole(role);
 
-        const userWard = loggedInUser.ward || localStorage.getItem("userWard") || "Ward 07";
+        const userWard = loggedInUser.wardName || loggedInUser.ward_name || loggedInUser.ward || localStorage.getItem("userWard") || "";
         setCurrentWard(userWard);
         setWard(userWard);
 
-        // Initial Sample Projects matching the UI
-        const defaultProjects = [
-            {
-                id: 1,
-                title: "Bridge Reconstruction",
-                category: "Ongoing",
-                ward: "Ward 4",
-                description: "Rebuilding the main concrete bridge connecting the eastern zone to the town area.",
-                progress: 65,
-                budget: "₹ 12,00,,000",
-                image: ""
-            },
-            {
-                id: 2,
-                title: "Primary School Solar Panel Installation",
-                category: "Completed",
-                ward: "Ward 2",
-                description: "Installation of 10kW solar power system for the Government Higher Secondary School.",
-                progress: 100,
-                budget: "₹ 4,50,000",
-                image: ""
-            },
-            {
-                id: 3,
-                title: "Public Pond Rejuvenation",
-                category: "Upcoming",
-                ward: "Ward 7",
-                description: "Desilting and cleaning of the central village pond, including pathway creation.",
-                progress: 10,
-                budget: "₹ 8,75,000",
-                image: ""
-            },
-            {
-                id: 4,
-                title: "New Anganwadi Construction",
-                category: "Ongoing",
-                ward: "Ward 1",
-                description: "Building a modern, child-friendly Anganwadi center with basic play amenities.",
-                progress: 40,
-                budget: "₹ 15,50,000",
-                image: ""
-            }
-        ];
-
-        const savedProjects = localStorage.getItem("ente_gramam_projects");
-        if (savedProjects) {
-            try {
-                setProjects(JSON.parse(savedProjects));
-            } catch (err) {
-                setProjects(defaultProjects);
-            }
-        } else {
-            setProjects(defaultProjects);
-            localStorage.setItem("ente_gramam_projects", JSON.stringify(defaultProjects));
-        }
+        fetchProjects();
     }, []);
+
+    const fetchProjects = async () => {
+        setLoading(true);
+        try {
+            // 👈 2. api.get ഉപയോഗിച്ചു (HttpOnly Cookies ഓട്ടോമാറ്റിക്കായി പോകും)
+            const response = await api.get("projects/");
+            const data = response.data;
+            setProjects(Array.isArray(data) ? data : data.results || []);
+        } catch (error) {
+            console.error("Error fetching projects:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const handleImageChange = (e) => {
         const file = e.target.files[0];
         if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setImageFile(reader.result); // Base64 string
-            };
-            reader.readAsDataURL(file);
+            setSelectedFile(file);
+            setImagePreview(URL.createObjectURL(file));
         }
     };
 
-    const handleProjectSubmit = (e) => {
+    const handleProjectSubmit = async (e) => {
         e.preventDefault();
         if (!title || !budget) return;
 
-        let updatedProjects;
-        if (editingProjectId) {
-            updatedProjects = projects.map(p => {
-                if (p.id === editingProjectId) {
-                    return {
-                        ...p,
-                        title,
-                        category,
-                        ward,
-                        description,
-                        progress: category === "Completed" ? 100 : Number(progress),
-                        budget,
-                        image: imageFile || p.image
-                    };
-                }
-                return p;
-            });
-            alert("Project updated successfully!");
-        } else {
-            const newProject = {
-                id: Date.now(),
-                title,
-                category,
-                ward,
-                description,
-                progress: category === "Completed" ? 100 : Number(progress),
-                budget,
-                image: imageFile
-            };
-            updatedProjects = [newProject, ...projects];
-            alert("New village project posted successfully!");
+        const formData = new FormData();
+        formData.append("title", title);
+        formData.append("category", category);
+        formData.append("ward", ward || currentWard); 
+        formData.append("description", description || "");
+        formData.append("progress", category === "Completed" ? 100 : Number(progress));
+        formData.append("budget", budget);
+        
+        if (startDate) formData.append("start_date", startDate);
+        if (endDate) formData.append("end_date", endDate);
+
+        if (selectedFile) {
+            formData.append("image", selectedFile);
         }
 
-        setProjects(updatedProjects);
-        localStorage.setItem("ente_gramam_projects", JSON.stringify(updatedProjects));
+        try {
+            const config = {
+                headers: {
+                    "Content-Type": "multipart/form-data"
+                }
+            };
 
-        setShowModal(false);
-        setEditingProjectId(null);
-        setTitle("");
-        setDescription("");
-        setBudget("");
-        setImageFile("");
-        setProgress(50);
+            // 👈 3. api.put / api.post ഉപയോഗിച്ചു
+            if (editingProjectId) {
+                await api.put(`projects/${editingProjectId}/`, formData, config);
+                alert("Project updated successfully!");
+            } else {
+                await api.post("projects/", formData, config);
+                alert("New village project posted successfully!");
+            }
+
+            resetForm();
+            setShowModal(false);
+            fetchProjects();
+        } catch (error) {
+            console.error("Error saving project:", error);
+            alert("Failed to save project details.");
+        }
     };
 
     const handleEditClick = (project) => {
@@ -165,24 +121,49 @@ export default function VillageProjectsPage() {
         setTitle(project.title);
         setCategory(project.category);
         setWard(project.ward);
-        setDescription(project.description);
+        setDescription(project.description || "");
         setProgress(project.progress);
         setBudget(project.budget);
-        setImageFile(project.image || "");
+        
+        setStartDate(project.start_date || "");
+        setEndDate(project.end_date || "");
+        
+        setImagePreview(project.image || "");
+        setSelectedFile(null);
         setShowModal(true);
     };
 
-    const handleDeleteProject = (id) => {
+    const handleDeleteProject = async (id) => {
         if (window.confirm("Are you sure you want to delete this project?")) {
-            const updated = projects.filter(p => p.id !== id);
-            setProjects(updated);
-            localStorage.setItem("ente_gramam_projects", JSON.stringify(updated));
+            try {
+                // 👈 4. api.delete ഉപയോഗിച്ചു
+                await api.delete(`projects/${id}/`);
+                alert("Project deleted successfully.");
+                fetchProjects();
+            } catch (error) {
+                console.error("Error deleting project:", error);
+                alert("Failed to delete project.");
+            }
         }
     };
 
-    const isPrivileged = userRole.includes("panchayat") || userRole.includes("admin") || userRole.includes("ward");
+    const resetForm = () => {
+        setEditingProjectId(null);
+        setTitle("");
+        setDescription("");
+        setBudget("");
+        setStartDate("");
+        setEndDate("");
+        setSelectedFile(null);
+        setImagePreview("");
+        setProgress(50);
+        setCategory("Ongoing");
+        setWard(currentWard);
+    };
 
-  
+    const isPrivileged = userRole.includes("panchayat") || userRole.includes("admin") || userRole.includes("ward");
+    const isWardUserOnly = userRole.includes("ward") && !userRole.includes("admin") && !userRole.includes("panchayat");
+
     const filteredProjects = projects.filter(p => {
         const matchesTab = 
             activeTab === "All Projects" || 
@@ -191,15 +172,11 @@ export default function VillageProjectsPage() {
             (activeTab === "Upcoming" && (p.category === "Upcoming" || p.category === "Planning Phase"));
 
         const matchesSearch = 
-            p.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-            p.ward.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            p.description.toLowerCase().includes(searchQuery.toLowerCase());
+            (p.title && p.title.toLowerCase().includes(searchQuery.toLowerCase())) || 
+            (p.ward && p.ward.toLowerCase().includes(searchQuery.toLowerCase())) ||
+            (p.description && p.description.toLowerCase().includes(searchQuery.toLowerCase()));
 
-        // Ward restriction: Citizens can only see their own ward projects
-        const isPanchayatAdmin = userRole.includes("panchayat") || userRole.includes("admin");
-        const matchesWard = isPanchayatAdmin || p.ward.toLowerCase() === currentWard.toLowerCase();
-
-        return matchesTab && matchesSearch && matchesWard;
+        return matchesTab && matchesSearch;
     });
 
     const activeWorksCount = projects.filter(p => p.category === "Ongoing").length;
@@ -247,12 +224,7 @@ export default function VillageProjectsPage() {
                     />
                     {isPrivileged && (
                         <button className="btn-add-project" onClick={() => {
-                            setEditingProjectId(null);
-                            setTitle("");
-                            setDescription("");
-                            setBudget("");
-                            setImageFile("");
-                            setProgress(50);
+                            resetForm();
                             setShowModal(true);
                         }}>
                             + Add Project
@@ -261,69 +233,83 @@ export default function VillageProjectsPage() {
                 </div>
             </div>
 
-            <div className="projects-grid">
-                {filteredProjects.map(project => (
-                    <div key={project.id} className="project-card">
-                        {project.image && (
-                            <div className="project-card-image">
-                                <img src={project.image} alt={project.title} />
-                            </div>
-                        )}
-                        <div className="project-card-header">
-                            <span className={`status-badge ${project.category.toLowerCase().includes('ongoing') ? 'badge-ongoing' : project.category.toLowerCase().includes('completed') ? 'badge-completed' : 'badge-upcoming'}`}>
-                                ● {project.category}
-                            </span>
-                            <span className="ward-badge">📍 {project.ward}</span>
-                        </div>
-
-                        <h3>{project.title}</h3>
-                        <p className="project-desc">{project.description}</p>
-
-                        <div className="project-progress-section">
-                            <div className="progress-info">
-                                <span>{project.category === "Completed" ? "Status" : "Progress"}</span>
-                                <strong>{project.category === "Completed" ? "100% Finalized" : `${project.progress}%`}</strong>
-                            </div>
-                            {project.category !== "Completed" && (
-                                <div className="progress-bar-bg">
-                                    <div className="progress-bar-fill" style={{ width: `${project.progress}%` }}></div>
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="project-card-footer">
-                            <div>
-                                <span className="budget-label">{project.category === "Completed" ? "Final Cost" : "Budget Aligned"}</span>
-                                <strong className="budget-amount">{project.budget}</strong>
-                            </div>
-                            <div className="card-btn-group">
-                                <button className="btn-details" onClick={() => setSelectedProject(project)}>
-                                    Details &rarr;
-                                </button>
-                                {isPrivileged && (
-                                    <>
-                                        <button className="btn-edit-proj" onClick={() => handleEditClick(project)} title="Edit">
-                                            ✏️
-                                        </button>
-                                        <button className="btn-delete-proj" onClick={() => handleDeleteProject(project.id)} title="Delete">
-                                            🗑️
-                                        </button>
-                                    </>
+            {loading ? (
+                <div style={{ textAlign: "center", padding: "40px" }}>Loading projects...</div>
+            ) : (
+                <div className="projects-grid">
+                    {filteredProjects.length === 0 ? (
+                        <p style={{ gridColumn: "1/-1", textAlign: "center", color: "#666" }}>No projects found.</p>
+                    ) : (
+                        filteredProjects.map(project => (
+                            <div key={project.id} className="project-card">
+                                {project.image && (
+                                    <div className="project-card-image">
+                                        <img src={project.image} alt={project.title} />
+                                    </div>
                                 )}
-                            </div>
-                        </div>
-                    </div>
-                ))}
-            </div>
+                                <div className="project-card-header">
+                                    <span className={`status-badge ${project.category?.toLowerCase().includes('ongoing') ? 'badge-ongoing' : project.category?.toLowerCase().includes('completed') ? 'badge-completed' : 'badge-upcoming'}`}>
+                                        ● {project.category}
+                                    </span>
+                                    <span className="ward-badge">📍 {project.ward}</span>
+                                </div>
 
-            {/* Add / Edit Project Modal */}
+                                <h3>{project.title}</h3>
+                                <p className="project-desc">{project.description}</p>
+
+                                {(project.start_date || project.created_at) && (
+                                    <div style={{ fontSize: "12px", color: "#666", marginBottom: "10px" }}>
+                                        📅 {project.start_date ? `Start: ${project.start_date}` : `Posted: ${new Date(project.created_at).toLocaleDateString()}`}
+                                        {project.end_date && ` | End: ${project.end_date}`}
+                                    </div>
+                                )}
+
+                                <div className="project-progress-section">
+                                    <div className="progress-info">
+                                        <span>{project.category === "Completed" ? "Status" : "Progress"}</span>
+                                        <strong>{project.category === "Completed" ? "100% Finalized" : `${project.progress}%`}</strong>
+                                    </div>
+                                    {project.category !== "Completed" && (
+                                        <div className="progress-bar-bg">
+                                            <div className="progress-bar-fill" style={{ width: `${project.progress}%` }}></div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="project-card-footer">
+                                    <div>
+                                        <span className="budget-label">{project.category === "Completed" ? "Final Cost" : "Budget Aligned"}</span>
+                                        <strong className="budget-amount">{project.budget}</strong>
+                                    </div>
+                                    <div className="card-btn-group">
+                                        <button className="btn-details" onClick={() => setSelectedProject(project)}>
+                                            Details &rarr;
+                                        </button>
+                                        {isPrivileged && (
+                                            <>
+                                                <button className="btn-edit-proj" onClick={() => handleEditClick(project)} title="Edit">
+                                                    ✏️
+                                                </button>
+                                                <button className="btn-delete-proj" onClick={() => handleDeleteProject(project.id)} title="Delete">
+                                                    🗑️
+                                                </button>
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        ))
+                    )}
+                </div>
+            )}
+
             {showModal && (
                 <div className="modal-overlay">
                     <div className="modal-box">
                         <button className="close-btn" onClick={() => setShowModal(false)}>&times;</button>
                         <h2>{editingProjectId ? "Edit Village Project" : "Add New Village Project"}</h2>
                         <p>Fill in development project details for the panchayat.</p>
-                        
+
                         <form onSubmit={handleProjectSubmit}>
                             <div className="form-group">
                                 <label>Project Title</label>
@@ -337,10 +323,41 @@ export default function VillageProjectsPage() {
                                     <option value="Upcoming">Upcoming / Planning Phase</option>
                                 </select>
                             </div>
+
                             <div className="form-group">
                                 <label>Ward Location</label>
-                                <input type="text" value={ward} onChange={(e) => setWard(e.target.value)} required placeholder="e.g. Ward 4" />
+                                <input 
+                                    type="text" 
+                                    value={ward} 
+                                    onChange={(e) => setWard(e.target.value)} 
+                                    required 
+                                    readOnly={isWardUserOnly} 
+                                    style={{
+                                        backgroundColor: isWardUserOnly ? "#f3f4f6" : "#ffffff",
+                                        cursor: isWardUserOnly ? "not-allowed" : "text",
+                                        color: isWardUserOnly ? "#4b5563" : "#000000",
+                                        fontWeight: isWardUserOnly ? "600" : "normal"
+                                    }}
+                                    placeholder="e.g. Ward 07" 
+                                />
+                                {isWardUserOnly && (
+                                    <small style={{ color: "#6b7280", fontSize: "11px", marginTop: "2px", display: "block" }}>
+                                        🔒 Locked to your assigned ward ({currentWard})
+                                    </small>
+                                )}
                             </div>
+
+                            <div style={{ display: "flex", gap: "10px" }}>
+                                <div className="form-group" style={{ flex: 1 }}>
+                                    <label>Start Date</label>
+                                    <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+                                </div>
+                                <div className="form-group" style={{ flex: 1 }}>
+                                    <label>Target End Date</label>
+                                    <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+                                </div>
+                            </div>
+
                             <div className="form-group">
                                 <label>Description</label>
                                 <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows="3" placeholder="Brief details about the road/project..."></textarea>
@@ -359,9 +376,9 @@ export default function VillageProjectsPage() {
                                 <label>Project Image (Road / Work Photo)</label>
                                 <input type="file" accept="image/*" onChange={handleImageChange} />
                             </div>
-                            {imageFile && (
+                            {imagePreview && (
                                 <div style={{ marginBottom: "15px" }}>
-                                    <img src={imageFile} alt="Preview" style={{ width: "100px", height: "70px", objectFit: "cover", borderRadius: "6px" }} />
+                                    <img src={imagePreview} alt="Preview" style={{ width: "100px", height: "70px", objectFit: "cover", borderRadius: "6px" }} />
                                 </div>
                             )}
                             <div className="modal-actions">
@@ -373,19 +390,37 @@ export default function VillageProjectsPage() {
                 </div>
             )}
 
-            {/* Details Modal */}
             {selectedProject && (
                 <div className="modal-overlay">
                     <div className="modal-box">
                         <button className="close-btn" onClick={() => setSelectedProject(null)}>&times;</button>
                         <h2>{selectedProject.title}</h2>
                         <p><span className="status-badge badge-ongoing">● {selectedProject.category}</span> • 📍 {selectedProject.ward}</p>
-                        
+
                         {selectedProject.image && (
                             <div style={{ margin: "15px 0" }}>
                                 <img src={selectedProject.image} alt="Project" style={{ width: "100%", height: "200px", objectFit: "cover", borderRadius: "8px" }} />
                             </div>
                         )}
+
+                        <div style={{ margin: "15px 0" }}>
+                            <h4>Timeline & Details</h4>
+                            {selectedProject.created_at && (
+                                <p style={{ fontSize: "14px", color: "#555" }}>
+                                    <strong>Created On:</strong> {new Date(selectedProject.created_at).toLocaleString()}
+                                </p>
+                            )}
+                            {selectedProject.start_date && (
+                                <p style={{ fontSize: "14px", color: "#555" }}>
+                                    <strong>Start Date:</strong> {selectedProject.start_date}
+                                </p>
+                            )}
+                            {selectedProject.end_date && (
+                                <p style={{ fontSize: "14px", color: "#555" }}>
+                                    <strong>Target Completion:</strong> {selectedProject.end_date}
+                                </p>
+                            )}
+                        </div>
 
                         <div style={{ margin: "15px 0" }}>
                             <h4>Description</h4>

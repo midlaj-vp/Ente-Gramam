@@ -1,10 +1,13 @@
+/* Base Layout & Wrapper */
 .hks-wrapper {
     padding: 20px;
     background-color: #f8f9fa;
     min-height: 100vh;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    box-sizing: border-box;
 }
 
+/* Header Section */
 .hks-top-header {
     display: flex;
     justify-content: space-between;
@@ -18,12 +21,13 @@
     font-size: 26px;
     font-weight: 700;
     color: #111;
-    margin-bottom: 4px;
+    margin: 0 0 4px 0;
 }
 
 .hks-top-header p {
     color: #666;
     font-size: 14px;
+    margin: 0;
 }
 
 .btn-request-pickup {
@@ -36,7 +40,7 @@
     font-size: 13px;
     cursor: pointer;
     transition: background 0.2s;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: 6px;
 }
@@ -45,6 +49,33 @@
     background: #047857;
 }
 
+/* Navigation Tabs */
+.hks-tabs-bar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.tab-btn {
+    padding: 8px 16px;
+    border-radius: 20px;
+    border: 1px solid #cbd5e1;
+    background: #f8fafc;
+    color: #334155;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 13px;
+    transition: all 0.2s ease;
+}
+
+.tab-btn.active {
+    background: #16a34a;
+    color: #ffffff;
+    border-color: #16a34a;
+}
+
+/* Main Grid Layout */
 .hks-main-grid {
     display: grid;
     grid-template-columns: 2fr 1fr;
@@ -52,12 +83,7 @@
     margin-bottom: 30px;
 }
 
-@media (max-width: 900px) {
-    .hks-main-grid {
-        grid-template-columns: 1fr;
-    }
-}
-
+/* Schedules Section */
 .hks-schedule-section {
     background: #fff;
     border-radius: 12px;
@@ -77,6 +103,14 @@
     font-size: 18px;
     font-weight: 700;
     color: #222;
+    margin: 0;
+}
+.read-only-input {
+    background-color: #f1f5f9 !important;
+    color: #475569 !important;
+    cursor: not-allowed !important;
+    border: 1px solid #cbd5e1 !important;
+    font-weight: 600;
 }
 
 .btn-add-sched {
@@ -88,6 +122,11 @@
     font-size: 12px;
     font-weight: 600;
     cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-add-sched:hover {
+    background: #059669;
 }
 
 .schedule-cards-list {
@@ -127,7 +166,7 @@
     font-size: 15px;
     font-weight: 700;
     color: #222;
-    margin-bottom: 2px;
+    margin: 0 0 2px 0;
 }
 
 .sched-wards {
@@ -136,6 +175,9 @@
 }
 
 .sched-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
     text-align: right;
 }
 
@@ -152,7 +194,21 @@
     color: #666;
 }
 
-/* Impact Card styling matching image */
+.btn-icon-delete {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 15px;
+    padding: 4px;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.btn-icon-delete:hover {
+    background: #fee2e2;
+}
+
+/* Impact Card Styling */
 .hks-impact-card {
     background: #065f46;
     color: #fff;
@@ -162,58 +218,80 @@
     display: flex;
     flex-direction: column;
     justify-content: space-between;
+    min-height: 250px;
 }
 
 .hks-impact-card h3 {
     font-size: 18px;
     font-weight: 700;
-    margin-bottom: 6px;
+    margin: 0;
     color: #fff;
+}
+
+.impact-header-flex {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.btn-edit-impact {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: #fff;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background 0.2s;
+}
+
+.btn-edit-impact:hover {
+    background: rgba(255, 255, 255, 0.3);
 }
 
 .impact-subtitle {
     font-size: 12px;
     color: #a7f3d0;
-    margin-bottom: 15px;
+}
+
+.impact-kg-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 30px 0;
 }
 
 .impact-kg-value {
     font-size: 37px;
     font-weight: 800;
     color: #fff;
-    /* margin-bottom: 40px; */
-    margin-left: 60px;
-    margin-top: 50px;
     letter-spacing: -0.5px;
     position: relative;
-    animation-name: myanimation;
-    animation-duration: 3s;
-    animation-direction: reverse;
-    animation-iteration-count: infinite;
-    animation-direction: alternate;
-
+    animation: myanimation 3s ease-in-out infinite alternate;
 }
 
 @keyframes myanimation {
     0% {
         transform: translateY(0px);
     }
-
     50% {
-        transform: translateY(-9px);
+        transform: translateY(-8px);
     }
-
-    /* ചെറുതായി മുകളിലേക്ക് അനങ്ങാൻ */
     100% {
         transform: translateY(0px);
     }
-
 }
 
 .kg-unit {
     font-size: 16px;
     font-weight: 600;
     color: #a7f3d0;
+}
+
+.impact-footer {
+    margin-top: auto;
 }
 
 .impact-goal-row {
@@ -236,49 +314,153 @@
     height: 100%;
     background: #34d399;
     border-radius: 4px;
+    transition: width 0.4s ease;
 }
 
-/* Green Tips Section */
-.green-tips-section h3 {
-    font-size: 18px;
-    font-weight: 700;
-    color: #222;
-    margin-bottom: 15px;
-}
-
-.tips-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-    gap: 16px;
-}
-
-.tip-card {
+/* Pickup Requests Section */
+.pickup-requests-section {
     background: #fff;
-    border: 1px solid #eaeaea;
     padding: 20px;
     border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+    border: 1px solid #e2e8f0;
 }
 
-.tip-icon {
-    font-size: 22px;
-    margin-bottom: 10px;
-}
-
-.tip-card h4 {
-    font-size: 15px;
+.pickup-requests-section h3 {
+    font-size: 18px;
     font-weight: 700;
-    color: #222;
-    margin-bottom: 6px;
+    color: #1e293b;
+    margin: 0 0 16px 0;
 }
 
-.tip-card p {
+.pickup-cards-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.pickup-card-item {
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    background: #fff;
+}
+
+.pickup-card-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.pickup-title-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.pickup-title-row strong {
+    font-size: 15px;
+    color: #0f172a;
+}
+
+.status-badge {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 12px;
+}
+
+.status-badge.completed {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.status-badge.pending {
+    background: #ffedd5;
+    color: #c2410c;
+}
+
+.pickup-details {
     font-size: 13px;
-    color: #666;
-    line-height: 1.4;
+    color: #475569;
 }
 
-/* Modal styling re-used */
+.pickup-note {
+    font-size: 13px;
+    color: #64748b;
+    font-style: italic;
+}
+
+/* Action Buttons Styling */
+.hks-action-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    outline: none;
+    white-space: nowrap;
+}
+
+.btn-action:active {
+    transform: scale(0.97);
+}
+
+.btn-status.is-pending {
+    background-color: #16a34a;
+    color: #ffffff;
+    box-shadow: 0 2px 4px rgba(22, 163, 74, 0.2);
+}
+
+.btn-status.is-pending:hover {
+    background-color: #15803d;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(22, 163, 74, 0.3);
+}
+
+.btn-status.is-completed {
+    background-color: #fef3c7;
+    color: #b45309;
+    border: 1px solid #fcd34d;
+}
+
+.btn-status.is-completed:hover {
+    background-color: #d97706;
+    color: #ffffff;
+    border-color: #d97706;
+    transform: translateY(-1px);
+}
+
+.btn-delete {
+    background-color: #fee2e2;
+    color: #dc2626;
+    border: 1px solid #fca5a5;
+}
+
+.btn-delete:hover {
+    background-color: #dc2626;
+    color: #ffffff;
+    border-color: #dc2626;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(220, 38, 38, 0.2);
+}
+
+/* Modals */
 .modal-overlay {
     position: fixed;
     top: 0;
@@ -323,14 +505,8 @@
 .modal-box h2 {
     font-size: 20px;
     font-weight: 700;
-    margin-bottom: 5px;
+    margin: 0 0 15px 0;
     color: #111;
-}
-
-.modal-box p {
-    font-size: 13px;
-    color: #666;
-    margin-bottom: 20px;
 }
 
 .form-group {
@@ -355,28 +531,7 @@
     font-size: 13px;
     outline: none;
     background: #fff;
-}
-
-.impact-header-flex {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 6px;
-}
-
-.btn-edit-impact {
-    background: rgba(255, 255, 255, 0.2);
-    border: none;
-    color: #fff;
-    padding: 4px 8px;
-    border-radius: 6px;
-    font-size: 11px;
-    cursor: pointer;
-    font-weight: 600;
-}
-
-.btn-edit-impact:hover {
-    background: rgba(255, 255, 255, 0.3);
+    box-sizing: border-box;
 }
 
 .form-group input:focus,
@@ -420,4 +575,83 @@
 
 .submit-btn:hover {
     background: #059669;
+}
+
+.hks-loading, .hks-empty-state {
+    text-align: center;
+    padding: 30px;
+    color: #64748b;
+    font-size: 14px;
+}
+
+/* -------------------------------------------
+   RESPONSIVE MEDIA QUERIES
+------------------------------------------- */
+
+/* Tablets (below 900px) */
+@media (max-width: 900px) {
+    .hks-main-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Mobile Devices (below 640px) */
+@media (max-width: 640px) {
+    .hks-wrapper {
+        padding: 12px;
+    }
+
+    .hks-top-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .btn-request-pickup {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .hks-tabs-bar {
+        width: 100%;
+    }
+
+    .tab-btn {
+        flex: 1;
+        text-align: center;
+    }
+
+    .schedule-card-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .sched-right {
+        width: 100%;
+        justify-content: space-between;
+        text-align: left;
+        border-top: 1px dashed #e2e8f0;
+        padding-top: 8px;
+    }
+
+    .pickup-card-item {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .hks-action-group {
+        width: 100%;
+        justify-content: flex-end;
+        border-top: 1px dashed #e2e8f0;
+        padding-top: 10px;
+        margin-top: 6px;
+    }
+
+    .btn-action {
+        flex: 1;
+    }
+
+    .modal-box {
+        padding: 18px;
+    }
 }

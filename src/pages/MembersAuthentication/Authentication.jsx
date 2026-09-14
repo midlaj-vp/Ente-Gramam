@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo } from "react";
-import Authentication from './Authentication';
 import {
   Users,
   CheckCircle2,
@@ -7,8 +6,10 @@ import {
   MapPin,
   Search,
   Plus,
-  ChevronDown
+  ChevronDown,
+  Loader2
 } from "lucide-react";
+import api from "../../axiosInstance";
 import "./Authentication.css";
 
 const WARD_OPTIONS = {
@@ -24,21 +25,18 @@ const WARD_OPTIONS = {
 
 export default function MembersAuthentication() {
   const [isAdmin, setIsAdmin] = useState(null);
-  const [allUsers, setAllUsers] = useState([]);
   const [wardMembers, setWardMembers] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Filters & Search
   const [searchQuery, setSearchQuery] = useState("");
   const [wardFilter, setWardFilter] = useState("All Wards");
   const [statusFilter, setStatusFilter] = useState("All Status");
 
-  // Modals
   const [showAddModal, setShowAddModal] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [selectedMember, setSelectedMember] = useState(null);
   const [errorMsg, setErrorMsg] = useState("");
 
-  // New Member Form State
   const [newMember, setNewMember] = useState({
     name: "",
     username: "",
@@ -47,9 +45,7 @@ export default function MembersAuthentication() {
     password: ""
   });
 
-  // --- 1. INITIALIZATION & ROLE CHECK ---
   useEffect(() => {
-    // Check logged in user from localStorage
     const rawLoggedIn = localStorage.getItem("loggedInUser") || localStorage.getItem("currentUser") || "{}";
     let loggedInUser = {};
     try {
@@ -60,57 +56,28 @@ export default function MembersAuthentication() {
 
     const role = (loggedInUser.role || "").toLowerCase();
 
-    // Panchayat Admin ആണെങ്കിൽ മാത്രം ആക്സസ് നൽകുന്നു
     if (role !== "panchayat" && role !== "admin") {
       setIsAdmin(false);
       return;
     }
 
     setIsAdmin(true);
-    loadData();
-
-    // Storage Changes Sync (മറ്റു ടാബുകളിൽ മാറ്റം വരുമ്പോൾ തനിയെ അപ്ഡേറ്റ് ആകും)
-    const handleStorageChange = (e) => {
-      if (e.key === "usersList" || e.key === "app_users") loadData();
-    };
-    window.addEventListener("storage", handleStorageChange);
-    return () => window.removeEventListener("storage", handleStorageChange);
+    fetchWardMembers();
   }, []);
 
-  // --- 2. DATA LOADING & DEDUPLICATION ---
-  const loadData = () => {
-    let users = [];
+  const fetchWardMembers = async () => {
+    setLoading(true);
     try {
-      users = JSON.parse(localStorage.getItem("usersList") || localStorage.getItem("app_users") || "[]");
-    } catch (e) {
-      users = [];
+      const response = await api.get("ward-members/");
+      const list = Array.isArray(response.data) ? response.data : response.data.results || [];
+      setWardMembers(list);
+    } catch (error) {
+      console.error("Error fetching ward members:", error);
+    } finally {
+      setLoading(false);
     }
-
-    setAllUsers(users);
-
-    // Filter ward members and remove duplicates
-    const membersMap = new Map();
-
-    users.forEach(user => {
-      if (user.role === "ward") {
-        const normalizedUser = {
-          ...user,
-          status: user.status || "active",
-          joinedDate: user.joinedDate || new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
-        };
-        
-        if (normalizedUser.username) {
-          if (!membersMap.has(normalizedUser.username.toLowerCase())) {
-            membersMap.set(normalizedUser.username.toLowerCase(), normalizedUser);
-          }
-        }
-      }
-    });
-
-    setWardMembers(Array.from(membersMap.values()));
   };
 
-  // --- 3. DYNAMIC STATISTICS & FILTERING ---
   const dynamicWardsList = useMemo(() => {
     const wards = new Set(wardMembers.map(m => m.wardName).filter(Boolean));
     return Array.from(wards).sort();
@@ -140,8 +107,7 @@ export default function MembersAuthentication() {
     };
   }, [wardMembers, dynamicWardsList]);
 
-  // --- 4. ADMIN ACTIONS ---
-  const handleAddSubmit = (e) => {
+  const handleAddSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg("");
 
@@ -157,84 +123,32 @@ export default function MembersAuthentication() {
       return;
     }
 
-    // Check for duplicate username or mobile
-    const isDuplicate = allUsers.some(u =>
-      (u.username && u.username.toLowerCase() === username.toLowerCase()) ||
-      (u.mobile && u.mobile === mobile)
-    );
+    try {
+      await api.post("ward-members/", newMember);
 
-    if (isDuplicate) {
-      setErrorMsg("Username or Mobile number already exists in the system.");
-      return;
+      setNewMember({ name: "", username: "", mobile: "", wardName: "", password: "" });
+      setShowAddModal(false);
+      fetchWardMembers();
+    } catch (error) {
+      console.error("Error adding ward member:", error);
+      const resData = error.response?.data;
+      setErrorMsg(resData?.error || resData?.detail || "Server connection error. Please try again.");
     }
-
-    // Check if the ward already has an assigned member
-    const isWardTaken = allUsers.some(u =>
-      u.role === "ward" &&
-      u.wardName === wardName
-    );
-
-    if (isWardTaken) {
-      setErrorMsg("This ward already has an assigned ward member.");
-      return;
-    }
-
-    const newUserObj = {
-      id: `WARD-${Date.now()}`,
-      name: name.trim(),
-      username: username.trim(),
-      mobile: mobile.trim(),
-      wardName: wardName,
-      password: password,
-      role: "ward",
-      status: "active",
-      joinedDate: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
-    };
-
-    const updatedUsersList = [...allUsers, newUserObj];
-    localStorage.setItem("usersList", JSON.stringify(updatedUsersList));
-
-    setNewMember({ name: "", username: "", mobile: "", wardName: "", password: "" });
-    setShowAddModal(false);
-    loadData(); // Synchronize UI
   };
 
-  const handleToggleStatusConfirm = () => {
+  const handleToggleStatusConfirm = async () => {
     if (!selectedMember) return;
 
-    const newStatus = selectedMember.status === "active" ? "inactive" : "active";
+    try {
+      await api.patch(`ward-members/${selectedMember.id}/toggle_status/`);
 
-    // Update status in global usersList
-    const updatedUsersList = allUsers.map(u => {
-      if (u.username === selectedMember.username && u.role === "ward") {
-        return { ...u, status: newStatus };
-      }
-      return u;
-    });
-
-    localStorage.setItem("usersList", JSON.stringify(updatedUsersList));
-
-    // Handle immediate logout if deactivating the currently logged in ward member
-    if (newStatus === "inactive") {
-      let activeUser = null;
-      try {
-        const rawLogged = localStorage.getItem("loggedInUser") || localStorage.getItem("currentUser");
-        if (rawLogged) {
-          activeUser = JSON.parse(rawLogged);
-        }
-      } catch (e) {}
-
-      if (activeUser && activeUser.username === selectedMember.username && activeUser.role === "ward") {
-        localStorage.removeItem("loggedInUser");
-        localStorage.removeItem("currentUser");
-      }
+      setShowConfirmModal(false);
+      setSelectedMember(null);
+      fetchWardMembers();
+    } catch (error) {
+      console.error("Error toggling status:", error);
+      alert("Failed to update status.");
     }
-
-    window.dispatchEvent(new Event("storage"));
-
-    setShowConfirmModal(false);
-    setSelectedMember(null);
-    loadData();
   };
 
   const openConfirmModal = (member) => {
@@ -242,12 +156,8 @@ export default function MembersAuthentication() {
     setShowConfirmModal(true);
   };
 
-  // Prevent flicker while checking role
-  if (isAdmin === null) {
-    return null;
-  }
+  if (isAdmin === null) return null;
 
-  // Render Access Denied if not Admin/Panchayat
   if (isAdmin === false) {
     return (
       <div className="ma-access-denied">
@@ -263,8 +173,6 @@ export default function MembersAuthentication() {
 
   return (
     <div className="ma-container">
-
-      {/* Header Section */}
       <div className="ma-header">
         <div className="ma-header-texts">
           <h1>Members Authentication</h1>
@@ -275,7 +183,6 @@ export default function MembersAuthentication() {
         </button>
       </div>
 
-      {/* Top Statistic Cards */}
       <div className="ma-stats-grid">
         <div className="ma-stat-card">
           <div className="ma-icon-circle bg-green-light"><Users size={20} color="#16a34a" /></div>
@@ -307,10 +214,7 @@ export default function MembersAuthentication() {
         </div>
       </div>
 
-      {/* Data Table Section */}
       <div className="ma-table-card">
-
-        {/* Filters Row */}
         <div className="ma-filters-row">
           <div className="ma-search-box">
             <Search size={16} color="#9ca3af" />
@@ -342,67 +246,71 @@ export default function MembersAuthentication() {
           </div>
         </div>
 
-        {/* Table */}
         <div className="ma-table-responsive">
-          <table className="ma-table">
-            <thead>
-              <tr>
-                <th>MEMBER</th>
-                <th>USERNAME</th>
-                <th>MOBILE NUMBER</th>
-                <th>WARD NAME</th>
-                <th>STATUS</th>
-                <th>JOINED DATE</th>
-                <th>ACTION</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredMembers.length > 0 ? (
-                filteredMembers.map((member, idx) => {
-                  const isActive = member.status === "active";
-                  return (
-                    <tr key={member.id || idx}>
-                      <td>
-                        <div className="ma-user-col">
-                          <div className="ma-avatar">
-                            {member.name ? member.name.substring(0, 2).toUpperCase() : "WM"}
-                          </div>
-                          <div>
-                            <div className="ma-user-name">{member.name}</div>
-                            <div className="ma-user-role">Ward Member</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td>{member.username}</td>
-                      <td>{member.mobile}</td>
-                      <td>{member.wardName}</td>
-                      <td>
-                        <span className={`ma-badge ${isActive ? 'ma-badge-active' : 'ma-badge-inactive'}`}>
-                          {isActive ? 'Active' : 'Inactive'}
-                        </span>
-                      </td>
-                      <td>{member.joinedDate}</td>
-                      <td>
-                        <button
-                          className={`ma-action-btn ${isActive ? 'ma-btn-stop' : 'ma-btn-activate'}`}
-                          onClick={() => openConfirmModal(member)}
-                        >
-                          {isActive ? 'Stop' : 'Activate'}
-                        </button>
-                      </td>
-                    </tr>
-                  )
-                })
-              ) : (
+          {loading ? (
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}>
+              <Loader2 className="animate-spin" size={32} color="#16a34a" />
+            </div>
+          ) : (
+            <table className="ma-table">
+              <thead>
                 <tr>
-                  <td colSpan="7" className="ma-empty-state">No ward members found.</td>
+                  <th>MEMBER</th>
+                  <th>USERNAME</th>
+                  <th>MOBILE NUMBER</th>
+                  <th>WARD NAME</th>
+                  <th>STATUS</th>
+                  <th>JOINED DATE</th>
+                  <th>ACTION</th>
                 </tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {filteredMembers.length > 0 ? (
+                  filteredMembers.map((member) => {
+                    const isActive = member.status === "active";
+                    return (
+                      <tr key={member.id}>
+                        <td>
+                          <div className="ma-user-col">
+                            <div className="ma-avatar">
+                              {member.name ? member.name.substring(0, 2).toUpperCase() : "WM"}
+                            </div>
+                            <div>
+                              <div className="ma-user-name">{member.name}</div>
+                              <div className="ma-user-role">Ward Member</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td>{member.username}</td>
+                        <td>{member.mobile}</td>
+                        <td>{member.wardName}</td>
+                        <td>
+                          <span className={`ma-badge ${isActive ? 'ma-badge-active' : 'ma-badge-inactive'}`}>
+                            {isActive ? 'Active' : 'Inactive'}
+                          </span>
+                        </td>
+                        <td>{member.joinedDate}</td>
+                        <td>
+                          <button
+                            className={`ma-action-btn ${isActive ? 'ma-btn-stop' : 'ma-btn-activate'}`}
+                            onClick={() => openConfirmModal(member)}
+                          >
+                            {isActive ? 'Stop' : 'Activate'}
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })
+                ) : (
+                  <tr>
+                    <td colSpan="7" className="ma-empty-state">No ward members found.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          )}
         </div>
 
-        {/* Pagination Footer */}
         <div className="ma-pagination">
           <span className="ma-page-info">
             Showing {filteredMembers.length > 0 ? 1 : 0} to {filteredMembers.length} of {filteredMembers.length} members
@@ -414,7 +322,6 @@ export default function MembersAuthentication() {
         </div>
       </div>
 
-      {/* --- ADD MEMBER MODAL --- */}
       {showAddModal && (
         <div className="ma-modal-overlay">
           <div className="ma-modal">
@@ -459,14 +366,12 @@ export default function MembersAuthentication() {
         </div>
       )}
 
-      {/* --- CONFIRMATION MODAL --- */}
       {showConfirmModal && selectedMember && (
         <div className="ma-modal-overlay">
           <div className="ma-modal ma-modal-sm">
             <h3>{selectedMember.status === "active" ? "Deactivate Member?" : "Activate Member?"}</h3>
             <p className="ma-modal-text">
               Are you sure you want to {selectedMember.status === "active" ? "stop" : "activate"} access for <strong>{selectedMember.name}</strong>?
-              {selectedMember.status === "active" && " They will be immediately logged out of their current session."}
             </p>
             <div className="ma-modal-actions" style={{ marginTop: '20px' }}>
               <button type="button" className="ma-btn-cancel" onClick={() => setShowConfirmModal(false)}>Cancel</button>
@@ -481,7 +386,6 @@ export default function MembersAuthentication() {
           </div>
         </div>
       )}
-
     </div>
   );
 }

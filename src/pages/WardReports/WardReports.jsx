@@ -2,67 +2,99 @@ import React, { useState, useEffect, useMemo } from "react";
 import {
   Search,
   Download,
-  ClipboardList,
+  AlertCircle,
   FileText,
   Wrench,
-  Siren,
   ChevronDown,
-  MoreHorizontal,
   MessageSquare,
-  Star,
-  Vote,
-  Calendar
+  Loader2
 } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import api from "../../axiosInstance";
 import "./WardReports.css";
 
-// 1. Fallback Data for Welfare Schemes
-const FALLBACK_APPLICATIONS = [
-  { id: "A1", applicantName: "Mohammed Kunhi", wardName: "Ward 07", schemeName: "Widow Pension", schemeCategory: "Pension", status: "approved", date: "2026-08-12" },
-  { id: "A2", applicantName: "Saraswathi T.", wardName: "Ward 01", schemeName: "LIFE Mission Housing", schemeCategory: "Housing", status: "under_review", date: "2026-08-10" },
-  { id: "A3", applicantName: "Ashraf Ali J.", wardName: "Ward 07", schemeName: "Agricultural Subsidy", schemeCategory: "Agriculture", status: "verified", date: "2026-08-05" },
-  { id: "A4", applicantName: "Priya Rajan", wardName: "Ward 02", schemeName: "Student Scholarship", schemeCategory: "Education", status: "approved", date: "2026-08-01" },
-  { id: "A5", applicantName: "Ramesh K.", wardName: "Ward 03", schemeName: "Health Insurance", schemeCategory: "Health", status: "rejected", date: "2026-08-14" },
+const WARD_MAP = {
+  "ward-1": "North Ward",
+  "ward-2": "South Ward",
+  "ward-3": "East Ward",
+  "ward-4": "West Ward",
+  "ward-5": "Central Ward",
+  "ward-6": "Hill View",
+  "ward-7": "River Side",
+  "ward-8": "Market Ward"
+};
+
+const MONTH_NAMES = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December"
 ];
 
-// 2. Fallback Data for Development Projects (Includes Contractor & Location details)
-const FALLBACK_PROJECTS = [
-  { id: "P1", projectName: "Main Road Drain Concrete", wardName: "Ward 07", budget: "₹4,50,000", status: "In Progress", completion: "75%", startDate: "2026-06-10", contractor: "VK Infrastructure", location: "Vavoor Junction Road" },
-  { id: "P2", projectName: "Solar Street Light Fitting", wardName: "Ward 01", budget: "₹1,20,000", status: "Completed", completion: "100%", startDate: "2026-05-15", contractor: "Kerala Electricals", location: "Temple East Street" },
-  { id: "P3", projectName: "Drinking Water Pipe Maintenance", wardName: "Ward 02", budget: "₹2,80,000", status: "Approved", completion: "10%", startDate: "2026-08-01", contractor: "Jalanidhi Tech", location: "North Canal Belt" },
-  { id: "P4", projectName: "Anganwadi Renovation", wardName: "Ward 03", budget: "₹3,50,000", status: "In Progress", completion: "40%", startDate: "2026-07-20", contractor: "Gramin Builders", location: "Anganwadi #4 Site" },
-];
+const formatWardName = (wardStr) => {
+  if (!wardStr) return "";
+  const keyLower = wardStr.toString().trim().toLowerCase();
+  if (keyLower === "all wards") return "All Wards";
+  return WARD_MAP[keyLower] || wardStr;
+};
 
-// 3. Fallback Data for Recent Activity (Includes Voting & Poll Details)
-const FALLBACK_ACTIVITIES = [
-  { id: "ACT1", user: "Admin", action: "Approved Widow Pension Application #A1", wardName: "Ward 07", category: "Application Update", time: "2026-08-12 10:30 AM" },
-  { id: "ACT2", user: "Ward Member", action: "Submitted inspection report for Drain project", wardName: "Ward 07", category: "Project Milestone", time: "2026-08-11 04:15 PM" },
-  { id: "ACT3", user: "Citizen (Abdul R.)", action: "Cast vote 'In Favor' for Ward Road Widening Poll", wardName: "Ward 07", category: "Voting / Poll", time: "2026-08-11 02:20 PM" },
-  { id: "ACT4", user: "Ward Member", action: "Published new Ward Decision Poll: Drinking Water Pipe Allocation", wardName: "Ward 02", category: "Voting / Poll", time: "2026-08-10 11:00 AM" },
-  { id: "ACT5", user: "Citizen", action: "Submitted new complaint regarding water supply", wardName: "Ward 02", category: "New Complaint", time: "2026-08-10 09:00 AM" },
-];
+const parseDateObject = (dateStr) => {
+  if (!dateStr || dateStr === "N/A") return null;
+  
+  if (typeof dateStr === "string" && dateStr.includes("/")) {
+    const parts = dateStr.split("/");
+    if (parts.length === 3) {
+      const [p1, p2, p3] = parts;
+      if (p3.length === 4) {
+        const d = new Date(`${p3}-${p2}-${p1}`);
+        if (!isNaN(d.getTime())) return d;
+      }
+    }
+  }
 
-// 4. Fallback Data for Citizen Feedback
-const FALLBACK_FEEDBACKS = [
-  { id: "F1", citizenName: "Abdul Rahman", wardName: "Ward 07", category: "Waste Management", rating: 5, comment: "Garbage collection has been very prompt this month. Great work!", date: "2026-08-14", status: "Reviewed" },
-  { id: "F2", citizenName: "Saritha V.", wardName: "Ward 01", category: "Street Lighting", rating: 2, comment: "Street light near the temple corner is flickering and off for 2 days.", date: "2026-08-12", status: "Action Required" },
-  { id: "F3", citizenName: "Kishore Kumar", wardName: "Ward 03", category: "Water Supply", rating: 4, comment: "Water timing has improved. Thanks for fixing the valve.", date: "2026-08-09", status: "Resolved" },
-  { id: "F4", citizenName: "Moideen C.", wardName: "Ward 07", category: "Road Maintenance", rating: 5, comment: "Drainage cleaning before monsoon was handled effectively.", date: "2026-08-07", status: "Reviewed" },
-];
+  const d = new Date(dateStr);
+  if (!isNaN(d.getTime())) return d;
+  return null;
+};
 
 export default function WardReports() {
   const [userRole, setUserRole] = useState("");
   const [userWardName, setUserWardName] = useState("");
+
+  const [selectedMonth, setSelectedMonth] = useState("All Months");
+  const [selectedYear, setSelectedYear] = useState("All Years");
+  const [selectedWard, setSelectedWard] = useState("All Wards");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeTab, setActiveTab] = useState("Welfare Schemes");
+
+  const [applications, setApplications] = useState([]);
+  const [projects, setProjects] = useState([]);
+  const [complaints, setComplaints] = useState([]);
+  const [feedbacks, setFeedbacks] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(null);
+
+  const isAdmin = userRole === "panchayat" || userRole === "admin";
+
+  const extractList = (data) => {
+    if (Array.isArray(data)) return data;
+    if (data && Array.isArray(data.results)) return data.results;
+    return [];
+  };
 
   useEffect(() => {
     try {
       const rawUser = localStorage.getItem("loggedInUser") || localStorage.getItem("user");
       if (rawUser) {
         const parsedUser = JSON.parse(rawUser);
-        const role = (parsedUser.role || "citizen").toLowerCase();
+        const role = (parsedUser.role || "ward").toLowerCase();
+        const ward = parsedUser.wardName || parsedUser.ward_name || parsedUser.ward || "";
+        
         setUserRole(role);
-        setUserWardName(parsedUser.wardName || parsedUser.ward || "Ward 07");
+        setUserWardName(formatWardName(ward));
+
+        if (role !== "panchayat" && role !== "admin" && ward) {
+          setSelectedWard(formatWardName(ward));
+        }
       } else {
         setUserRole("panchayat");
       }
@@ -71,225 +103,344 @@ export default function WardReports() {
     }
   }, []);
 
-  const [selectedMonth, setSelectedMonth] = useState("August 2026");
-  const [selectedWard, setSelectedWard] = useState("All Wards");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState("Welfare Schemes");
-
   useEffect(() => {
-    if (userRole === "ward") {
+    if (!isAdmin && userWardName) {
       setSelectedWard(userWardName);
     }
-  }, [userRole, userWardName]);
+  }, [isAdmin, userWardName]);
 
-  // Data States
-  const [applications, setApplications] = useState(FALLBACK_APPLICATIONS);
-  const [projects, setProjects] = useState(FALLBACK_PROJECTS);
-  const [activities, setActivities] = useState(FALLBACK_ACTIVITIES);
-  const [feedbacks, setFeedbacks] = useState(FALLBACK_FEEDBACKS);
-
-  // Fetch & normalize dynamic data from localStorage
   useEffect(() => {
-    try {
-      // 1. Schemes
-      const storedApps = JSON.parse(localStorage.getItem("ente_gramam_scheme_applications") || "[]");
-      if (storedApps.length > 0) setApplications(storedApps);
+    const fetchAllData = async () => {
+      setLoading(true);
+      setFetchError(null);
+      try {
+        const [appsRes, projRes, compRes, cbRes, genRes] = await Promise.allSettled([
+          api.get("applications/"),
+          api.get("projects/"),
+          api.get("complaints/"),
+          api.get("citizen-feedbacks/"),
+          api.get("general-feedbacks/")
+        ]);
 
-      // 2. Projects (Normalized so added projects display all properties seamlessly)
-      const storedProjects = JSON.parse(localStorage.getItem("ente_gramam_projects") || "[]");
-      if (storedProjects.length > 0) {
-        const normalizedProjects = storedProjects.map((p, idx) => ({
-          id: p.id || `P_LOCAL_${idx}`,
-          projectName: p.projectName || p.name || p.title || "Development Work",
-          wardName: p.wardName || p.ward || "Ward 07",
-          budget: p.budget || p.cost || p.amount || "₹0",
-          status: p.status || "In Progress",
-          completion: p.completion || (p.progress ? `${p.progress}%` : "0%"),
-          startDate: p.startDate || p.date || p.createdDate || "2026-08-01",
-          contractor: p.contractor || p.agency || "Gram Panchayat Dept",
-          location: p.location || p.site || "Ward Region"
-        }));
-        setProjects(normalizedProjects);
+        if (appsRes.status === "fulfilled") setApplications(extractList(appsRes.value.data));
+        if (projRes.status === "fulfilled") setProjects(extractList(projRes.value.data));
+        
+        if (compRes.status === "fulfilled") {
+          setComplaints(extractList(compRes.value.data));
+        } else {
+          try {
+            const historyRes = await api.get("history/");
+            setComplaints(extractList(historyRes.data));
+          } catch (e) {
+            console.error("History fetch error", e);
+          }
+        }
+
+        let combinedFeedbacks = [];
+        if (cbRes.status === "fulfilled") combinedFeedbacks = [...combinedFeedbacks, ...extractList(cbRes.value.data)];
+        if (genRes.status === "fulfilled") combinedFeedbacks = [...combinedFeedbacks, ...extractList(genRes.value.data)];
+
+        setFeedbacks(combinedFeedbacks);
+
+      } catch (error) {
+        console.error("Error fetching dynamic data from API:", error);
+        setFetchError("Failed to fetch reports data from server.");
+      } finally {
+        setLoading(false);
       }
+    };
 
-      // 3. Feedbacks (Normalized to display all citizen feedback submissions)
-      const storedFeedbacks = JSON.parse(localStorage.getItem("ente_gramam_feedbacks") || localStorage.getItem("ente_gramam_feedback") || "[]");
-      if (storedFeedbacks.length > 0) {
-        const normalizedFeedbacks = storedFeedbacks.map((f, idx) => ({
-          id: f.id || `F_LOCAL_${idx}`,
-          citizenName: f.citizenName || f.userName || f.name || "Citizen User",
-          wardName: f.wardName || f.ward || "Ward 07",
-          category: f.category || f.type || "General Feedback",
-          rating: f.rating || 5,
-          comment: f.comment || f.message || f.feedback || f.details || "No comments provided.",
-          date: f.date || f.createdAt || "2026-08-10",
-          status: f.status || "Reviewed"
-        }));
-        setFeedbacks(normalizedFeedbacks);
-      }
-
-      // 4. Activities + Dynamic Voting Details
-      const storedActivities = JSON.parse(localStorage.getItem("ente_gramam_activities") || "[]");
-      const storedVotes = JSON.parse(localStorage.getItem("ente_gramam_votes") || localStorage.getItem("ente_gramam_polls") || "[]");
-      
-      let mergedActivities = storedActivities.length > 0 ? [...storedActivities] : [...FALLBACK_ACTIVITIES];
-
-      // Merge dynamic votes into activities list if available
-      if (storedVotes.length > 0) {
-        const voteLogs = storedVotes.map((v, idx) => ({
-          id: v.id || `VOTE_${idx}`,
-          user: v.voterName || v.user || "Citizen Voter",
-          action: v.action || `Cast vote '${v.choice || "In Favor"}' on ${v.pollTitle || "Ward Poll"}`,
-          wardName: v.wardName || v.ward || "Ward 07",
-          category: "Voting / Poll",
-          time: v.time || v.date || "2026-08-12 12:00 PM"
-        }));
-        mergedActivities = [...voteLogs, ...mergedActivities];
-      }
-
-      setActivities(mergedActivities);
-    } catch (e) {
-      console.error("Error fetching Ward Reports data:", e);
-    }
+    fetchAllData();
   }, []);
 
-  // Filters based on Ward selection & Search Query
+  const getWardName = (item) => {
+    if (!item) return "";
+    const rawWard = item.wardName || item.ward || item.ward_name || "";
+    return formatWardName(rawWard);
+  };
+
+  const getItemDate = (item) => {
+    return item.date || item.created_at || item.time || item.aiLetter?.date || "N/A";
+  };
+
+  const availableWards = useMemo(() => {
+    const wardsSet = new Set(Object.values(WARD_MAP));
+    const allItems = [...applications, ...projects, ...complaints, ...feedbacks];
+    
+    allItems.forEach((item) => {
+      const w = getWardName(item);
+      if (w && w.trim() && w !== "All Wards") wardsSet.add(w.trim());
+    });
+
+    return Array.from(wardsSet).sort();
+  }, [applications, projects, complaints, feedbacks]);
+
+  const availableYears = useMemo(() => {
+    const yearsSet = new Set();
+    const allItems = [...applications, ...projects, ...complaints, ...feedbacks];
+
+    allItems.forEach((item) => {
+      const parsedDate = parseDateObject(getItemDate(item));
+      if (parsedDate) {
+        yearsSet.add(parsedDate.getFullYear().toString());
+      }
+    });
+
+    if (yearsSet.size === 0) {
+      yearsSet.add(new Date().getFullYear().toString());
+    }
+
+    return Array.from(yearsSet).sort((a, b) => b - a);
+  }, [applications, projects, complaints, feedbacks]);
+
+  const filterByWardMonthAndYear = (item) => {
+    const wardVal = getWardName(item).toLowerCase().trim();
+    const targetWard = (isAdmin ? selectedWard : userWardName).toLowerCase().trim();
+
+    let matchesWard = false;
+    if (isAdmin && (selectedWard === "All Wards" || !selectedWard)) {
+      matchesWard = true;
+    } else if (targetWard) {
+      matchesWard = wardVal === targetWard || wardVal.includes(targetWard) || targetWard.includes(wardVal);
+      if (!matchesWard) {
+        const targetNum = parseInt(targetWard.replace(/\D/g, ""), 10);
+        const itemNum = parseInt(wardVal.replace(/\D/g, ""), 10);
+        if (!isNaN(targetNum) && !isNaN(itemNum)) {
+          matchesWard = targetNum === itemNum;
+        }
+      }
+    } else {
+      matchesWard = true;
+    }
+
+    const parsedDate = parseDateObject(getItemDate(item));
+    let matchesMonth = true;
+    let matchesYear = true;
+
+    if (selectedMonth !== "All Months") {
+      if (parsedDate) {
+        const itemMonthName = parsedDate.toLocaleString("default", { month: "long" });
+        matchesMonth = itemMonthName.toLowerCase() === selectedMonth.toLowerCase();
+      } else {
+        matchesMonth = false;
+      }
+    }
+
+    if (selectedYear !== "All Years") {
+      if (parsedDate) {
+        matchesYear = parsedDate.getFullYear().toString() === selectedYear;
+      } else {
+        matchesYear = false;
+      }
+    }
+
+    return matchesWard && matchesMonth && matchesYear;
+  };
+
   const filteredApplications = useMemo(() => {
     return applications.filter((app) => {
-      const w = app.wardName || app.ward || "";
-      const matchesWard = selectedWard === "All Wards" || w.toLowerCase() === selectedWard.toLowerCase();
-      const matchesSearch = `${app.applicantName} ${app.schemeName} ${app.status}`.toLowerCase().includes(searchQuery.toLowerCase());
-      return matchesWard && matchesSearch;
+      const name = app.applicantName || app.applicant_name || '';
+      const scheme = app.schemeName || app.scheme_name || '';
+      const status = app.status || '';
+      const searchTarget = `${name} ${scheme} ${status}`.toLowerCase();
+      return filterByWardMonthAndYear(app) && searchTarget.includes(searchQuery.toLowerCase());
     });
-  }, [applications, selectedWard, searchQuery]);
+  }, [applications, selectedWard, userWardName, isAdmin, selectedMonth, selectedYear, searchQuery]);
 
   const filteredProjects = useMemo(() => {
     return projects.filter((p) => {
-      const w = p.wardName || p.ward || "";
-      const matchesWard = selectedWard === "All Wards" || w.toLowerCase() === selectedWard.toLowerCase();
-      const matchesSearch = `${p.projectName} ${p.contractor} ${p.location} ${p.status}`.toLowerCase().includes(searchQuery.toLowerCase());
-      return matchesWard && matchesSearch;
+      const title = p.title || p.projectName || p.project_name || '';
+      const desc = p.description || p.location || '';
+      const ward = getWardName(p);
+      const category = p.category || p.status || '';
+      
+      const searchTarget = `${title} ${desc} ${ward} ${category}`.toLowerCase();
+      return filterByWardMonthAndYear(p) && searchTarget.includes(searchQuery.toLowerCase());
     });
-  }, [projects, selectedWard, searchQuery]);
+  }, [projects, selectedWard, userWardName, isAdmin, selectedMonth, selectedYear, searchQuery]);
 
-  const filteredActivities = useMemo(() => {
-    return activities.filter((act) => {
-      const w = act.wardName || act.ward || "";
-      const matchesWard = selectedWard === "All Wards" || w.toLowerCase() === selectedWard.toLowerCase();
-      const matchesSearch = `${act.user} ${act.action} ${act.category}`.toLowerCase().includes(searchQuery.toLowerCase());
-      return matchesWard && matchesSearch;
+  const filteredComplaints = useMemo(() => {
+    return complaints.filter((c) => {
+      const user = c.complainant_name || c.complainantName || c.user || c.applicantName || '';
+      const subject = c.subject || c.title || c.action || c.decision || '';
+      const category = c.category || c.schemeName || '';
+      const searchTarget = `${user} ${subject} ${category}`.toLowerCase();
+      return filterByWardMonthAndYear(c) && searchTarget.includes(searchQuery.toLowerCase());
     });
-  }, [activities, selectedWard, searchQuery]);
+  }, [complaints, selectedWard, userWardName, isAdmin, selectedMonth, selectedYear, searchQuery]);
 
   const filteredFeedbacks = useMemo(() => {
     return feedbacks.filter((f) => {
-      const w = f.wardName || f.ward || "";
-      const matchesWard = selectedWard === "All Wards" || w.toLowerCase() === selectedWard.toLowerCase();
-      const matchesSearch = `${f.citizenName} ${f.comment} ${f.category}`.toLowerCase().includes(searchQuery.toLowerCase());
-      return matchesWard && matchesSearch;
+      const cName = f.citizenName || f.citizen_name || f.senderName || f.sender_name || '';
+      const comment = f.comment || f.message || '';
+      const category = f.category || '';
+      const searchTarget = `${cName} ${comment} ${category}`.toLowerCase();
+      return filterByWardMonthAndYear(f) && searchTarget.includes(searchQuery.toLowerCase());
     });
-  }, [feedbacks, selectedWard, searchQuery]);
+  }, [feedbacks, selectedWard, userWardName, isAdmin, selectedMonth, selectedYear, searchQuery]);
 
   const stats = useMemo(() => {
     const total = filteredApplications.length;
-    const approved = filteredApplications.filter(a => a.status === "approved" || a.status === "verified").length;
-    const pending = filteredApplications.filter(a => a.status === "pending" || a.status === "under_review").length;
-    const rejected = filteredApplications.filter(a => a.status === "rejected").length;
+    const approved = filteredApplications.filter((a) =>
+      ["approved", "verified"].includes((a.status || "").toLowerCase())
+    ).length;
+    const pending = filteredApplications.filter((a) =>
+      ["pending", "under_review", "submitted", "action_required"].includes((a.status || "").toLowerCase())
+    ).length;
 
-    return { total, approved, pending, rejected };
+    const approvedPct = total > 0 ? Math.round((approved / total) * 100) : 0;
+    return { total, approved, pending, approvedPct };
   }, [filteredApplications]);
 
-  const isAdmin = userRole === "panchayat";
+  const avgFeedbackRating = useMemo(() => {
+    const ratedItems = filteredFeedbacks.filter(f => f.rating);
+    if (ratedItems.length === 0) return "0.0";
+    const sum = ratedItems.reduce((acc, f) => acc + (Number(f.rating) || 0), 0);
+    return (sum / ratedItems.length).toFixed(1);
+  }, [filteredFeedbacks]);
 
-  // Export PDF depending on active tab with full details
   const handleExportPDF = () => {
     const doc = new jsPDF();
     const reportWard = isAdmin ? selectedWard : userWardName;
 
     doc.setFontSize(18);
     doc.setTextColor(22, 163, 74);
-    doc.text("ENTE GRAMAM - WARD REPORT", 14, 20);
+    doc.text("ENTE GRAMAM - CONSOLIDATED WARD REPORT", 14, 18);
 
-    doc.setFontSize(10);
+    doc.setFontSize(9);
     doc.setTextColor(100);
-    doc.text(`Tab: ${activeTab} | Ward: ${reportWard} | Month: ${selectedMonth}`, 14, 28);
-    doc.text(`Generated On: ${new Date().toLocaleDateString()}`, 14, 34);
+    doc.text(`Ward: ${reportWard} | Month: ${selectedMonth} | Year: ${selectedYear}`, 14, 25);
+    doc.text(`Generated On: ${new Date().toLocaleDateString()}`, 14, 30);
 
     doc.setDrawColor(220);
-    doc.line(14, 38, 196, 38);
+    doc.line(14, 34, 196, 34);
 
-    let headers = [];
-    let rows = [];
+    let currentY = 42;
 
-    if (activeTab === "Welfare Schemes") {
-      headers = isAdmin ? [["Applicant", "Ward", "Scheme", "Date", "Status"]] : [["Applicant", "Scheme", "Date", "Status"]];
-      rows = filteredApplications.map(a => isAdmin ? [a.applicantName, a.wardName || a.ward, a.schemeName, a.date, a.status] : [a.applicantName, a.schemeName, a.date, a.status]);
-    } else if (activeTab === "Development Projects") {
-      headers = [["Project Name", "Ward", "Location", "Contractor", "Budget", "Completion", "Status"]];
-      rows = filteredProjects.map(p => [p.projectName, p.wardName, p.location || "N/A", p.contractor || "N/A", p.budget, p.completion, p.status]);
-    } else if (activeTab === "Recent Activity") {
-      headers = [["Time", "Performed By", "Ward", "Category", "Action / Voting Log"]];
-      rows = filteredActivities.map(act => [act.time, act.user, act.wardName, act.category, act.action]);
-    } else if (activeTab === "Feedback") {
-      headers = [["Date", "Citizen", "Ward", "Category", "Rating", "Comments", "Status"]];
-      rows = filteredFeedbacks.map(f => [f.date, f.citizenName, f.wardName, f.category, `${f.rating}/5 Stars`, f.comment, f.status]);
-    }
+    const renderSection = (title, headers, rows) => {
+      if (currentY > 250) {
+        doc.addPage();
+        currentY = 20;
+      }
 
-    autoTable(doc, {
-      startY: 44,
-      head: headers,
-      body: rows.length > 0 ? rows : [["No records found"]],
-      theme: "grid",
-      headStyles: { fillColor: [22, 163, 74] },
-      margin: { left: 14, right: 14 },
-    });
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(15, 23, 42);
+      doc.text(title, 14, currentY);
 
-    doc.save(`${activeTab.replace(/\s+/g, "_")}_Report.pdf`);
+      autoTable(doc, {
+        startY: currentY + 4,
+        head: headers,
+        body: rows.length > 0 ? rows : [["No records found"]],
+        theme: "grid",
+        headStyles: { fillColor: [22, 163, 74] },
+        margin: { left: 14, right: 14 },
+        styles: { fontSize: 8 }
+      });
+
+      currentY = doc.lastAutoTable.finalY + 12;
+    };
+
+    const welfareRows = filteredApplications.map((a) => [
+      a.applicantName || a.applicant_name || "N/A",
+      getWardName(a) || "N/A",
+      a.schemeName || a.scheme_name || "N/A",
+      a.schemeCategory || a.scheme_category || "Welfare",
+      getItemDate(a),
+      a.status || "N/A"
+    ]);
+    renderSection(
+      "1. Welfare Schemes Applications",
+      [["Applicant", "Ward", "Scheme", "Category", "Date Applied", "Status"]],
+      welfareRows
+    );
+
+    const projectRows = filteredProjects.map((p) => [
+      p.title || p.projectName || "N/A",
+      getWardName(p) || "N/A",
+      p.description || p.location || "N/A",
+      p.budget || "N/A",
+      p.category === "Completed" ? "100%" : `${p.progress || 0}%`,
+      p.category || p.status || "N/A"
+    ]);
+    renderSection(
+      "2. Development Projects",
+      [["Project Title", "Ward", "Description", "Budget", "Progress", "Status"]],
+      projectRows
+    );
+
+    const complaintRows = filteredComplaints.map((c) => [
+      getItemDate(c),
+      c.complainant_name || c.complainantName || c.user || "Citizen",
+      getWardName(c) || "N/A",
+      c.subject || c.title || c.action || "Complaint Logged",
+      c.category || "General",
+      c.status || "Pending"
+    ]);
+    renderSection(
+      "3. Registered Complaints",
+      [["Date", "Complainant", "Ward", "Subject / Issue", "Category", "Status"]],
+      complaintRows
+    );
+
+    const feedbackRows = filteredFeedbacks.map((f) => [
+      getItemDate(f),
+      f.citizenName || f.citizen_name || f.senderName || f.sender_name || "N/A",
+      getWardName(f) || "N/A",
+      f.category || "General",
+      f.rating ? `${f.rating} / 5` : "N/A",
+      f.comment || f.message || "N/A",
+      f.status || "N/A"
+    ]);
+    renderSection(
+      "4. Citizen Feedbacks",
+      [["Date", "Citizen Name", "Ward", "Category", "Rating", "Comments", "Status"]],
+      feedbackRows
+    );
+
+    doc.save(`Ward_Report_${reportWard.replace(/\s+/g, "_")}.pdf`);
   };
 
   const getStatusBadge = (status) => {
     const s = (status || "").toLowerCase();
-    if (s.includes("approved") || s.includes("completed") || s.includes("verified") || s.includes("resolved") || s.includes("reviewed")) return <span className="wr-badge wr-badge-green">{status}</span>;
-    if (s.includes("rejected") || s.includes("action required")) return <span className="wr-badge wr-badge-red">{status}</span>;
-    if (s.includes("in progress") || s.includes("review")) return <span className="wr-badge wr-badge-blue">{status}</span>;
-    return <span className="wr-badge wr-badge-orange">{status}</span>;
+    if (s.includes("approved") || s.includes("completed") || s.includes("verified") || s.includes("resolved") || s.includes("action taken")) {
+      return <span className="wr-badge wr-badge-green">{status}</span>;
+    }
+    if (s.includes("rejected") || s.includes("failed")) {
+      return <span className="wr-badge wr-badge-red">{status}</span>;
+    }
+    if (s.includes("ongoing") || s.includes("in progress") || s.includes("under_review") || s.includes("submitted") || s.includes("acknowledged")) {
+      return <span className="wr-badge wr-badge-blue">{status}</span>;
+    }
+    return <span className="wr-badge wr-badge-orange">{status || "Pending"}</span>;
   };
-
-  if (userRole !== "ward" && userRole !== "panchayat") {
-    return <div className="wr-container">Access Denied. You must be a Ward Member or Panchayat Admin.</div>;
-  }
 
   return (
     <div className="wr-container">
-      {/* Header Section */}
       <div className="wr-header">
         <div className="wr-header-left">
           <h1>Ward Reports</h1>
           <p>{isAdmin ? "Monthly performance overview of all wards" : `Monthly performance report for ${userWardName}`}</p>
         </div>
-        
+
         <div className="wr-header-right">
           <div className="wr-search">
             <Search size={16} />
-            <input 
-              type="text" 
-              placeholder="Search reports, projects, votes..." 
+            <input
+              type="text"
+              placeholder="Search reports, projects..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          
+
           {isAdmin && (
             <div className="wr-filter-box">
               <select value={selectedWard} onChange={(e) => setSelectedWard(e.target.value)}>
                 <option value="All Wards">All Wards</option>
-                <option value="Ward 01">Ward 01</option>
-                <option value="Ward 02">Ward 02</option>
-                <option value="Ward 03">Ward 03</option>
-                <option value="Ward 04">Ward 04</option>
-                <option value="Ward 05">Ward 05</option>
-                <option value="Ward 06">Ward 06</option>
-                <option value="Ward 07">Ward 07</option>
+                {availableWards.map((w) => (
+                  <option key={w} value={w}>{w}</option>
+                ))}
               </select>
               <ChevronDown size={14} className="wr-select-icon" />
             </div>
@@ -297,9 +448,20 @@ export default function WardReports() {
 
           <div className="wr-filter-box">
             <select value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)}>
-              <option value="August 2026">August 2026</option>
-              <option value="September 2026">September 2026</option>
-              <option value="October 2026">October 2026</option>
+              <option value="All Months">All Months</option>
+              {MONTH_NAMES.map((m) => (
+                <option key={m} value={m}>{m}</option>
+              ))}
+            </select>
+            <ChevronDown size={14} className="wr-select-icon" />
+          </div>
+
+          <div className="wr-filter-box">
+            <select value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)}>
+              <option value="All Years">All Years</option>
+              {availableYears.map((y) => (
+                <option key={y} value={y}>{y}</option>
+              ))}
             </select>
             <ChevronDown size={14} className="wr-select-icon" />
           </div>
@@ -310,278 +472,200 @@ export default function WardReports() {
         </div>
       </div>
 
-      {/* TOP SUMMARY CARDS */}
-      {!isAdmin ? (
-        <div className="wr-summary-grid-ward">
-          <div className="wr-card wr-stat-card">
-            <div className="wr-stat-header">
-              <div className="wr-icon-box wr-icon-green"><ClipboardList size={18} /></div>
-              <span className="wr-trend wr-trend-up">+12%</span>
-            </div>
-            <p className="wr-stat-title">Total Complaints</p>
-            <h3 className="wr-stat-value">148</h3>
-            <p className="wr-stat-desc">120 Resolved this month</p>
-          </div>
-          
-          <div className="wr-card wr-stat-card">
-            <div className="wr-stat-header">
-              <div className="wr-icon-box wr-icon-green"><FileText size={18} /></div>
-              <span className="wr-trend wr-trend-neutral">30/04</span>
-            </div>
-            <p className="wr-stat-title">Welfare Applications</p>
-            <h3 className="wr-stat-value">{stats.total > 0 ? stats.total : 342}</h3>
-            <p className="wr-stat-desc">{stats.pending > 0 ? stats.pending : 28} Pending Review</p>
-          </div>
-
-          <div className="wr-card wr-stat-card">
-            <div className="wr-stat-header">
-              <div className="wr-icon-box wr-icon-gray"><Wrench size={18} /></div>
-              <span className="wr-trend wr-trend-up">Active</span>
-            </div>
-            <p className="wr-stat-title">Development Projects</p>
-            <h3 className="wr-stat-value">{filteredProjects.length}</h3>
-            <p className="wr-stat-desc">All project details synced</p>
-          </div>
-
-          <div className="wr-card wr-stat-card">
-            <div className="wr-stat-header">
-              <div className="wr-icon-box wr-icon-red"><MessageSquare size={18} /></div>
-              <span className="wr-trend wr-trend-up">New</span>
-            </div>
-            <p className="wr-stat-title">Citizen Feedback</p>
-            <h3 className="wr-stat-value">{filteredFeedbacks.length}</h3>
-            <p className="wr-stat-desc">Avg Rating: 4.2 / 5</p>
-          </div>
-        </div>
-      ) : (
-        <div className="wr-summary-grid-admin">
-          <div className="wr-card wr-admin-overview-card">
-            <div className="wr-admin-card-head">
-              <h3>Application Overview</h3>
-              <div className="wr-icon-box wr-icon-green"><FileText size={18} /></div>
-            </div>
-            <div className="wr-admin-stats-row">
-              <div className="wr-admin-stat-item">
-                <p>Total</p>
-                <h2 style={{ color: '#16a34a' }}>1,248</h2>
-                <span className="wr-trend wr-trend-up">+12%</span>
-              </div>
-              <div className="wr-admin-stat-item">
-                <p>Approved</p>
-                <h2 style={{ color: '#16a34a' }}>892</h2>
-                <div className="wr-progress-bar"><div className="wr-progress-fill bg-green" style={{ width: '70%' }}></div></div>
-              </div>
-              <div className="wr-admin-stat-item">
-                <p>Pending</p>
-                <h2 style={{ color: '#d97706' }}>234</h2>
-                <div className="wr-progress-bar"><div className="wr-progress-fill bg-orange" style={{ width: '20%' }}></div></div>
-              </div>
-              <div className="wr-admin-stat-item">
-                <p>Rejected</p>
-                <h2 style={{ color: '#dc2626' }}>122</h2>
-                <div className="wr-progress-bar"><div className="wr-progress-fill bg-red" style={{ width: '10%' }}></div></div>
-              </div>
-            </div>
-          </div>
-
-          <div className="wr-card wr-admin-complaints-card">
-            <div className="wr-admin-card-head">
-              <h3>Complaints Tracker</h3>
-              <div className="wr-icon-box wr-icon-red"><Siren size={18} /></div>
-            </div>
-            <div className="wr-admin-stats-row wr-complaint-stats">
-              <div className="wr-admin-stat-item">
-                <p>Total Complaints</p>
-                <h2>456</h2>
-              </div>
-              <div className="wr-admin-stat-item">
-                <p>Resolved</p>
-                <h2 style={{ color: '#16a34a' }}>380 <span style={{ fontSize: '14px', color: '#9ca3af' }}>/ 456</span></h2>
-                <span className="wr-resolution-rate">83% Resolution Rate</span>
-              </div>
-            </div>
-          </div>
+      {fetchError && (
+        <div className="wr-error-banner" style={{ background: '#fef2f2', border: '1px solid #fca5a5', padding: '12px', borderRadius: '8px', color: '#b91c1c', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <AlertCircle size={18} />
+          <span>{fetchError}</span>
         </div>
       )}
 
-      {/* DYNAMIC TABLE SECTION WITH TABS */}
+      <div className="wr-summary-grid-ward">
+        <div className="wr-card wr-stat-card">
+          <div className="wr-stat-header">
+            <div className="wr-icon-box wr-icon-green"><FileText size={18} /></div>
+            <span className="wr-trend wr-trend-neutral">{stats.approvedPct}% Approved</span>
+          </div>
+          <p className="wr-stat-title">Welfare Applications</p>
+          <h3 className="wr-stat-value">{stats.total}</h3>
+          <p className="wr-stat-desc">{stats.pending} Pending Review</p>
+        </div>
+
+        <div className="wr-card wr-stat-card">
+          <div className="wr-stat-header">
+            <div className="wr-icon-box wr-icon-gray"><Wrench size={18} /></div>
+            <span className="wr-trend wr-trend-up">Active</span>
+          </div>
+          <p className="wr-stat-title">Development Projects</p>
+          <h3 className="wr-stat-value">{filteredProjects.length}</h3>
+          <p className="wr-stat-desc">Projects Listed</p>
+        </div>
+
+        <div className="wr-card wr-stat-card">
+          <div className="wr-stat-header">
+            <div className="wr-icon-box wr-icon-orange"><AlertCircle size={18} /></div>
+          </div>
+          <p className="wr-stat-title">Complaints</p>
+          <h3 className="wr-stat-value">{filteredComplaints.length}</h3>
+          <p className="wr-stat-desc">Registered Complaints</p>
+        </div>
+
+        <div className="wr-card wr-stat-card">
+          <div className="wr-stat-header">
+            <div className="wr-icon-box wr-icon-red"><MessageSquare size={18} /></div>
+          </div>
+          <p className="wr-stat-title">Citizen Feedback</p>
+          <h3 className="wr-stat-value">{filteredFeedbacks.length}</h3>
+          <p className="wr-stat-desc">Avg Rating: {avgFeedbackRating} / 5</p>
+        </div>
+      </div>
+
       <div className="wr-card wr-table-section">
         <div className="wr-tabs">
-          {["Welfare Schemes", "Development Projects", "Recent Activity", "Feedback"].map(tab => (
-            <button 
-              key={tab} 
+          {["Welfare Schemes", "Development Projects", "Complaints", "Feedback"].map((tab) => (
+            <button
+              key={tab}
               className={`wr-tab ${activeTab === tab ? "active" : ""}`}
               onClick={() => setActiveTab(tab)}
             >
               {tab}
             </button>
           ))}
-          <div className="wr-tab-spacer"></div>
-          <button className="wr-export-text" onClick={handleExportPDF}>
-            <Download size={14}/> Export
-          </button>
         </div>
 
         <div className="wr-table-wrapper">
-          <table className="wr-table">
-            {/* 1. Welfare Schemes Table */}
-            {activeTab === "Welfare Schemes" && (
-              <>
-                <thead>
-                  <tr>
-                    <th>APPLICANT NAME</th>
-                    {isAdmin && <th>WARD</th>}
-                    <th>SCHEME TYPE</th>
-                    <th>DATE APPLIED</th>
-                    <th>STATUS</th>
-                    <th>ACTION</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredApplications.length > 0 ? filteredApplications.map(app => (
-                    <tr key={app.id}>
-                      <td>
-                        <div className="wr-table-user">
-                          <div className="wr-avatar bg-green-light">{app.applicantName.substring(0, 2).toUpperCase()}</div>
-                          <span className="wr-fw-600">{app.applicantName}</span>
-                        </div>
-                      </td>
-                      {isAdmin && <td>{app.wardName || app.ward}</td>}
-                      <td>{app.schemeName}</td>
-                      <td>{app.date}</td>
-                      <td>{getStatusBadge(app.status)}</td>
-                      <td><button className="wr-action-btn"><MoreHorizontal size={18}/></button></td>
+          {loading ? (
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}>
+              <Loader2 className="animate-spin" size={32} color="#16a34a" />
+            </div>
+          ) : (
+            <table className="wr-table">
+              {activeTab === "Welfare Schemes" && (
+                <>
+                  <thead>
+                    <tr>
+                      <th>APPLICANT NAME</th>
+                      <th>WARD</th>
+                      <th>SCHEME TYPE</th>
+                      <th>CATEGORY</th>
+                      <th>DATE APPLIED</th>
+                      <th>STATUS</th>
                     </tr>
-                  )) : (
-                    <tr><td colSpan={6} className="wr-empty-state">No schemes data found.</td></tr>
-                  )}
-                </tbody>
-              </>
-            )}
+                  </thead>
+                  <tbody>
+                    {filteredApplications.length > 0 ? (
+                      filteredApplications.map((app) => (
+                        <tr key={app.id}>
+                          <td className="wr-fw-600">{app.applicantName || app.applicant_name}</td>
+                          <td>{getWardName(app)}</td>
+                          <td>{app.schemeName || app.scheme_name}</td>
+                          <td>{app.schemeCategory || app.scheme_category || "Welfare"}</td>
+                          <td>{getItemDate(app)}</td>
+                          <td>{getStatusBadge(app.status)}</td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr><td colSpan={6} className="wr-empty-state">No welfare records found.</td></tr>
+                    )}
+                  </tbody>
+                </>
+              )}
 
-            {/* 2. Development Projects Table (ALL DETAILS VISIBLE) */}
-            {activeTab === "Development Projects" && (
-              <>
-                <thead>
-                  <tr>
-                    <th>PROJECT NAME</th>
-                    <th>WARD</th>
-                    <th>LOCATION</th>
-                    <th>CONTRACTOR</th>
-                    <th>BUDGET</th>
-                    <th>PROGRESS</th>
-                    <th>START DATE</th>
-                    <th>STATUS</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredProjects.length > 0 ? filteredProjects.map(proj => (
-                    <tr key={proj.id}>
-                      <td className="wr-fw-600">{proj.projectName}</td>
-                      <td>{proj.wardName}</td>
-                      <td>{proj.location || "N/A"}</td>
-                      <td>{proj.contractor || "N/A"}</td>
-                      <td style={{ fontWeight: 600, color: "#16a34a" }}>{proj.budget}</td>
-                      <td>
-                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                          <span>{proj.completion}</span>
-                        </div>
-                      </td>
-                      <td>{proj.startDate}</td>
-                      <td>{getStatusBadge(proj.status)}</td>
+              {activeTab === "Development Projects" && (
+                <>
+                  <thead>
+                    <tr>
+                      <th>PROJECT TITLE</th>
+                      <th>WARD</th>
+                      <th>DESCRIPTION</th>
+                      <th>BUDGET</th>
+                      <th>PROGRESS</th>
+                      <th>STATUS / CATEGORY</th>
                     </tr>
-                  )) : (
-                    <tr><td colSpan={8} className="wr-empty-state">No project records found.</td></tr>
-                  )}
-                </tbody>
-              </>
-            )}
+                  </thead>
+                  <tbody>
+                    {filteredProjects.length > 0 ? (
+                      filteredProjects.map((p) => (
+                        <tr key={p.id}>
+                          <td className="wr-fw-600">{p.title || p.projectName}</td>
+                          <td>{getWardName(p)}</td>
+                          <td>{p.description || p.location || "N/A"}</td>
+                          <td style={{ color: "#16a34a", fontWeight: 600 }}>{p.budget}</td>
+                          <td>{p.category === "Completed" ? "100%" : `${p.progress || 0}%`}</td>
+                          <td>{getStatusBadge(p.category || p.status)}</td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr><td colSpan={6} className="wr-empty-state">No project records found.</td></tr>
+                    )}
+                  </tbody>
+                </>
+              )}
 
-            {/* 3. Recent Activity Table (INCLUDES VOTING & POLL DETAILS) */}
-            {activeTab === "Recent Activity" && (
-              <>
-                <thead>
-                  <tr>
-                    <th>TIME / DATE</th>
-                    <th>PERFORMED BY</th>
-                    <th>WARD</th>
-                    <th>ACTION / VOTING LOG</th>
-                    <th>CATEGORY</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredActivities.length > 0 ? filteredActivities.map(act => (
-                    <tr key={act.id}>
-                      <td style={{ fontSize: "13px", color: "#6b7280" }}>{act.time}</td>
-                      <td className="wr-fw-600">{act.user}</td>
-                      <td>{act.wardName}</td>
-                      <td>
-                        {act.category === "Voting / Poll" ? (
-                          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                            <Vote size={15} color="#2563eb" />
-                            <span>{act.action}</span>
-                          </div>
-                        ) : (
-                          act.action
-                        )}
-                      </td>
-                      <td>
-                        <span className={`wr-badge ${act.category === "Voting / Poll" ? "wr-badge-blue" : "wr-badge-orange"}`}>
-                          {act.category}
-                        </span>
-                      </td>
+              {activeTab === "Complaints" && (
+                <>
+                  <thead>
+                    <tr>
+                      <th>DATE</th>
+                      <th>COMPLAINANT</th>
+                      <th>WARD</th>
+                      <th>SUBJECT / ISSUE</th>
+                      <th>CATEGORY</th>
+                      <th>STATUS</th>
                     </tr>
-                  )) : (
-                    <tr><td colSpan={5} className="wr-empty-state">No activity logged.</td></tr>
-                  )}
-                </tbody>
-              </>
-            )}
+                  </thead>
+                  <tbody>
+                    {filteredComplaints.length > 0 ? (
+                      filteredComplaints.map((comp) => (
+                        <tr key={comp.id}>
+                          <td>{getItemDate(comp)}</td>
+                          <td className="wr-fw-600">{comp.complainant_name || comp.complainantName || comp.user || "Citizen"}</td>
+                          <td>{getWardName(comp)}</td>
+                          <td>{comp.subject || comp.title || comp.action || "Complaint Logged"}</td>
+                          <td><span className="wr-badge wr-badge-orange">{comp.category || "General"}</span></td>
+                          <td>{getStatusBadge(comp.status)}</td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr><td colSpan={6} className="wr-empty-state">No complaints found.</td></tr>
+                    )}
+                  </tbody>
+                </>
+              )}
 
-            {/* 4. Feedback Table (SHOWS ALL FEEDBACK WITH DATES & COMMENTS) */}
-            {activeTab === "Feedback" && (
-              <>
-                <thead>
-                  <tr>
-                    <th>DATE</th>
-                    <th>CITIZEN NAME</th>
-                    <th>WARD</th>
-                    <th>CATEGORY</th>
-                    <th>RATING</th>
-                    <th>COMMENTS</th>
-                    <th>STATUS</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredFeedbacks.length > 0 ? filteredFeedbacks.map(fb => (
-                    <tr key={fb.id}>
-                      <td style={{ fontSize: "13px", color: "#6b7280", whiteSpace: "nowrap" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                          <Calendar size={13} />
-                          <span>{fb.date}</span>
-                        </div>
-                      </td>
-                      <td className="wr-fw-600">{fb.citizenName}</td>
-                      <td>{fb.wardName}</td>
-                      <td>{fb.category}</td>
-                      <td>
-                        <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                          <Star size={14} fill="#f59e0b" color="#f59e0b" />
-                          <span style={{ fontWeight: "600" }}>{fb.rating}/5</span>
-                        </div>
-                      </td>
-                      <td style={{ maxWidth: "280px", whiteSpace: "normal", fontSize: "13px", lineHeight: "1.4" }}>
-                        {fb.comment}
-                      </td>
-                      <td>{getStatusBadge(fb.status)}</td>
+              {activeTab === "Feedback" && (
+                <>
+                  <thead>
+                    <tr>
+                      <th>DATE</th>
+                      <th>CITIZEN NAME</th>
+                      <th>WARD</th>
+                      <th>CATEGORY</th>
+                      <th>RATING</th>
+                      <th>COMMENTS</th>
+                      <th>STATUS</th>
                     </tr>
-                  )) : (
-                    <tr><td colSpan={7} className="wr-empty-state">No feedback submissions found.</td></tr>
-                  )}
-                </tbody>
-              </>
-            )}
-          </table>
+                  </thead>
+                  <tbody>
+                    {filteredFeedbacks.length > 0 ? (
+                      filteredFeedbacks.map((f) => (
+                        <tr key={f.id}>
+                          <td>{getItemDate(f)}</td>
+                          <td className="wr-fw-600">{f.citizenName || f.citizen_name || f.senderName || f.sender_name || "Anonymous"}</td>
+                          <td>{getWardName(f)}</td>
+                          <td>{f.category || "General"}</td>
+                          <td>{f.rating ? `${f.rating} / 5` : "N/A"}</td>
+                          <td>{f.comment || f.message || "N/A"}</td>
+                          <td>{getStatusBadge(f.status)}</td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr><td colSpan={7} className="wr-empty-state">No feedback found.</td></tr>
+                    )}
+                  </tbody>
+                </>
+              )}
+            </table>
+          )}
         </div>
       </div>
     </div>

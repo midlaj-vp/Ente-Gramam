@@ -1,227 +1,57 @@
-/* Core Layout */
+/* ==========================================
+   1. Global Resets & Layout System
+   ========================================== */
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
 .em-container {
-    padding: 20px;
+    padding: 16px;
     font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     background-color: #f8fafc;
     color: #1e293b;
     min-height: 100vh;
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: hidden;
 }
 
-/* Banner */
-.em-top-banner {
-    background-color: #e63946;
-    color: white;
-    padding: 12px 20px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-radius: 8px;
-    margin-bottom: 20px;
-    box-shadow: 0 4px 6px rgba(230, 57, 70, 0.2);
-    animation: slideDown 0.4s ease;
+.em-main-grid {
+    display: grid;
+    grid-template-columns: 2fr 1.2fr;
+    gap: 20px;
+    width: 100%;
+    max-width: 100%;
 }
 
-.em-banner-text {
-    font-weight: bold;
-    font-size: 14px;
+.em-left-col, 
+.em-right-col {
+    width: 100%;
+    min-width: 0; /* ✨ Flex/Grid ഓവർഫ്ലോ തടയാൻ */
 }
 
-.em-banner-actions {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-}
-
-.em-btn-view-details {
-    background: rgba(255, 255, 255, 0.2);
-    color: white;
-    border: none;
-    padding: 6px 12px;
-    border-radius: 20px;
-    font-weight: bold;
-    cursor: pointer;
-    font-size: 12px;
-}
-
-.em-btn-close {
-    background: none;
-    border: none;
-    color: white;
-    cursor: pointer;
-    font-size: 16px;
-}
-
-/* Role Switcher (demo only) */
-.em-role-switcher {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 18px;
-    flex-wrap: wrap;
-}
-
-.em-role-label {
-    font-size: 12px;
-    font-weight: bold;
-    color: #64748b;
-}
-
-.em-role-tabs {
-    display: flex;
-    gap: 6px;
-    background: #eef2f7;
-    padding: 4px;
-    border-radius: 12px;
-}
-
-.em-role-tab {
-    border: none;
-    background: transparent;
-    padding: 8px 14px;
-    border-radius: 9px;
-    font-size: 13px;
-    font-weight: 600;
-    color: #64748b;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.em-role-tab-active {
+.em-card {
     background: white;
-    color: #0f172a;
-    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.12);
-}
-
-/* Soft role mismatch banner (non-blocking, informational) */
-.em-role-note {
-    background: #fffbeb;
-    border: 1px solid #fde68a;
-    color: #92400e;
-    padding: 10px 14px;
-    border-radius: 10px;
-    font-size: 12px;
-    font-weight: 600;
-    margin-bottom: 16px;
-}
-
-/* Toast */
-.em-toast {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    background: #0f172a;
-    color: white;
-    padding: 12px 18px;
-    border-radius: 10px;
-    font-size: 13px;
-    font-weight: 600;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-    z-index: 1000;
-    animation: toastIn 0.35s ease, toastOut 0.35s ease 3.1s;
-}
-
-@keyframes toastIn {
-    from {
-        opacity: 0;
-        transform: translateY(-10px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-@keyframes toastOut {
-    from {
-        opacity: 1;
-    }
-
-    to {
-        opacity: 0;
-    }
-}
-
-@keyframes slideDown {
-    from {
-        opacity: 0;
-        transform: translateY(-8px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-/* Admin Panel */
-.em-admin-panel {
-    background: #fef2f2;
-    border: 2px dashed #ef4444;
-    padding: 15px;
-    border-radius: 8px;
+    border-radius: 16px;
+    border: 1px solid #e2e8f0;
+    padding: 18px;
     margin-bottom: 20px;
+    width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
 }
 
-.em-admin-panel h3 {
-    margin: 0 0 10px 0;
-    color: #b91c1c;
-    font-size: 15px;
-}
-
-.em-admin-form {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 15px;
-}
-
-.em-admin-form input {
-    flex: 1;
-    padding: 8px 12px;
-    border: 1px solid #fca5a5;
-    border-radius: 6px;
-}
-
-.em-admin-form button {
-    background: #ef4444;
-    color: white;
-    border: none;
-    padding: 8px 16px;
-    border-radius: 6px;
-    font-weight: bold;
-    cursor: pointer;
-}
-
-.em-admin-list-item {
-    display: flex;
-    justify-content: space-between;
-    background: white;
-    padding: 8px 12px;
-    border-radius: 4px;
-    margin-bottom: 5px;
-    border: 1px solid #fecaca;
-    font-size: 14px;
-}
-
-.em-btn-delete {
-    background: #fee2e2;
-    color: #b91c1c;
-    border: none;
-    padding: 4px 8px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 12px;
-    font-weight: bold;
-}
-
-/* Header & Location */
+/* ==========================================
+   2. Header & Location Section
+   ========================================== */
 .em-header-section {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
     flex-wrap: wrap;
     gap: 15px;
-    margin-bottom: 25px;
+    margin-bottom: 20px;
+    width: 100%;
 }
 
 .em-header-titles h2 {
@@ -234,6 +64,7 @@
     margin: 0;
     font-size: 13px;
     color: #64748b;
+    word-break: break-word;
 }
 
 .em-location-card {
@@ -244,6 +75,7 @@
     align-items: center;
     gap: 12px;
     border: 1px solid #e2e8f0;
+    width: 100%;
 }
 
 .em-loc-icon {
@@ -251,11 +83,14 @@
     padding: 10px;
     border-radius: 50%;
     font-size: 18px;
+    flex-shrink: 0;
 }
 
 .em-loc-details {
     display: flex;
     flex-direction: column;
+    min-width: 0;
+    flex: 1;
 }
 
 .em-loc-label {
@@ -268,6 +103,13 @@
     font-size: 14px;
     color: #1e293b;
     margin: 2px 0;
+    word-break: break-word;
+}
+
+.em-map-link {
+    color: #2563eb;
+    text-decoration: underline;
+    word-break: break-all;
 }
 
 .em-loc-coords {
@@ -278,49 +120,109 @@
 .em-loc-refresh {
     color: #64748b;
     cursor: pointer;
-    margin-left: 10px;
-    transition: transform 0.3s ease;
+    margin-left: auto;
+    font-size: 18px;
+    padding: 4px;
+    flex-shrink: 0;
 }
 
-.em-loc-refresh:active {
-    transform: rotate(180deg);
+/* ==========================================
+   3. Warnings & Top Banner
+   ========================================== */
+.em-top-banner {
+    background-color: #dc2626;
+    color: white;
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
+    flex-wrap: wrap;
+    gap: 10px;
+    width: 100%;
 }
 
-/* Main Grid */
-.em-main-grid {
-    display: grid;
-    grid-template-columns: 2fr 1fr;
-    gap: 20px;
+.em-banner-content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    flex-wrap: wrap;
+    word-break: break-word;
+    min-width: 0;
 }
 
-@media(max-width: 900px) {
-    .em-main-grid {
-        grid-template-columns: 1fr;
-    }
+.em-banner-date {
+    font-size: 11px;
+    background: rgba(255, 255, 255, 0.25);
+    padding: 2px 8px;
+    border-radius: 4px;
 }
 
-.em-card {
+.em-btn-delete-banner {
     background: white;
-    border-radius: 16px;
-    border: 1px solid #e2e8f0;
-    padding: 20px;
+    color: #dc2626;
+    border: none;
+    padding: 4px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 12px;
+}
+
+.em-warning-card {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
     margin-bottom: 20px;
-    animation: fadeIn 0.35s ease;
 }
 
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(6px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+.em-warning-card h3 {
+    color: #991b1b;
+    margin: 0 0 12px 0;
+    font-size: 15px;
 }
 
-/* SOS Card */
+.em-warning-item {
+    background: white;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid #fca5a5;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.em-warning-item strong {
+    color: #991b1b;
+    font-size: 13px;
+    display: block;
+    word-break: break-word;
+}
+
+.em-warning-item p {
+    margin: 2px 0 0 0;
+    font-size: 12px;
+    color: #7f1d1d;
+}
+
+.em-warning-date {
+    font-size: 10px;
+    color: #9f1239;
+    background: #ffe4e6;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+/* ==========================================
+   4. SOS & Quick Buttons
+   ========================================== */
 .em-sos-card {
     text-align: center;
 }
@@ -334,12 +236,13 @@
 .em-sos-desc {
     font-size: 13px;
     color: #64748b;
-    margin-bottom: 30px;
+    margin-bottom: 20px;
+    word-break: break-word;
 }
 
 .em-sos-circle {
-    width: 180px;
-    height: 180px;
+    width: 160px;
+    height: 160px;
     border-radius: 50%;
     background: radial-gradient(circle, #e63946, #b91c1c);
     color: white;
@@ -348,367 +251,189 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    margin: 0 auto 30px auto;
+    margin: 0 auto 20px auto;
     cursor: pointer;
-    box-shadow: 0 15px 30px rgba(230, 57, 70, 0.3);
+    box-shadow: 0 12px 25px rgba(230, 57, 70, 0.3);
     transition: transform 0.2s;
-    position: relative;
-}
-
-.em-sos-circle:active {
-    transform: scale(0.95);
-}
-
-.em-sos-circle:disabled {
-    cursor: not-allowed;
 }
 
 .em-sos-circle h2 {
     margin: 0;
-    font-size: 32px;
+    font-size: 28px;
     font-weight: 900;
-    letter-spacing: 2px;
 }
 
 .em-sos-circle span {
-    font-size: 12px;
+    font-size: 11px;
     font-weight: bold;
-    margin-top: 5px;
+    margin-top: 4px;
 }
 
 .em-sos-active {
     animation: sosPulse 1.6s ease-out infinite;
 }
 
-@keyframes sosPulse {
-    0% {
-        box-shadow: 0 15px 30px rgba(230, 57, 70, 0.3), 0 0 0 0 rgba(230, 57, 70, 0.5);
-    }
-
-    70% {
-        box-shadow: 0 15px 30px rgba(230, 57, 70, 0.3), 0 0 0 22px rgba(230, 57, 70, 0);
-    }
-
-    100% {
-        box-shadow: 0 15px 30px rgba(230, 57, 70, 0.3), 0 0 0 0 rgba(230, 57, 70, 0);
-    }
-}
-
 .em-sos-quick-actions {
     display: flex;
-    justify-content: center;
-    gap: 10px;
-    flex-wrap: wrap;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
 }
 
 .em-sos-quick-actions button {
     background: #f8fafc;
     border: 1px solid #e2e8f0;
-    padding: 12px 16px;
+    padding: 12px 14px;
     border-radius: 12px;
     font-size: 13px;
     font-weight: 600;
     color: #475569;
     cursor: pointer;
-    flex: 1;
-    min-width: 120px;
-    transition: background 0.2s ease;
+    width: 100%;
+    text-align: center;
+    word-break: break-word;
 }
 
-.em-sos-quick-actions button:hover {
-    background: #f1f5f9;
-}
-
-/* Types Grid */
+/* ==========================================
+   5. Emergency Types Horizontal Scroll
+   ========================================== */
 .em-section-title {
     font-size: 14px;
     font-weight: bold;
-    margin-bottom: 15px;
+    margin: 15px 0 10px 0;
     color: #1e293b;
 }
 
 .em-type-grid {
     display: flex;
-    gap: 10px;
+    gap: 8px;
     overflow-x: auto;
-    margin-bottom: 20px;
-    padding-bottom: 5px;
+    width: 100%;
+    padding-bottom: 8px;
+    -webkit-overflow-scrolling: touch;
 }
 
 .em-type-btn {
     background: white;
     border: 1px solid #e2e8f0;
-    padding: 12px;
+    padding: 10px;
     border-radius: 12px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    min-width: 80px;
+    min-width: 75px;
     cursor: pointer;
     color: #64748b;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 600;
-    gap: 8px;
-    transition: all 0.2s ease;
-}
-
-.em-type-btn span {
-    font-size: 20px;
+    gap: 6px;
+    flex-shrink: 0;
 }
 
 .em-type-btn-active {
     border-color: #10b981 !important;
     background-color: #ecfdf5 !important;
     color: #047857;
-    transform: translateY(-2px);
 }
 
-.em-type-btn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-}
-
-/* Map Box */
-.em-map-container {
-    background: #e2e8f0;
-    height: 220px;
-    border-radius: 16px;
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 20px;
-}
-
-.em-map-icon {
-    font-size: 50px;
-    opacity: 0.5;
-}
-
-.em-map-controls {
-    position: absolute;
-    right: 15px;
-    top: 15px;
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-}
-
-.em-map-controls button {
-    background: white;
-    border: none;
-    width: 30px;
-    height: 30px;
-    border-radius: 6px;
-    font-size: 18px;
-    cursor: pointer;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.em-map-label {
-    position: absolute;
-    bottom: 15px;
-    left: 15px;
-    background: rgba(255, 255, 255, 0.8);
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 10px;
-    font-weight: bold;
-}
-
-/* Resources */
+/* ==========================================
+   6. Resource Cards (Hospitals / Helplines)
+   ========================================== */
 .em-resource-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 15px;
-}
-
-@media(max-width: 600px) {
-    .em-resource-grid {
-        grid-template-columns: 1fr;
-    }
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    width: 100%;
 }
 
 .em-resource-card {
     background: white;
     border: 1px solid #e2e8f0;
-    padding: 15px;
+    padding: 12px;
     border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-width: 0;
 }
 
 .em-res-header {
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    margin-bottom: 5px;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 6px;
 }
 
 .em-res-header strong {
-    font-size: 14px;
-}
-
-.em-resource-card p {
-    margin: 0 0 15px 0;
-    font-size: 12px;
-    color: #64748b;
+    font-size: 13px;
+    word-break: break-word;
 }
 
 .em-badge {
-    font-size: 10px;
-    padding: 3px 8px;
-    border-radius: 10px;
+    font-size: 9px;
+    padding: 3px 6px;
+    border-radius: 8px;
     font-weight: bold;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
-.em-badge-green {
-    background: #dcfce7;
-    color: #166534;
-}
-
-.em-badge-yellow {
-    background: #fef3c7;
-    color: #92400e;
-}
+.em-badge-green { background: #dcfce7; color: #166534; }
+.em-badge-yellow { background: #fef3c7; color: #92400e; }
 
 .em-res-actions {
     display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 10px;
+    width: 100%;
+}
+
+.em-btn-call, .em-btn-nav {
+    width: 100%;
+    padding: 8px;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 12px;
+    cursor: pointer;
+    text-align: center;
 }
 
 .em-btn-call {
     background: #10b981;
     color: white;
     border: none;
-    padding: 8px;
-    border-radius: 8px;
-    flex: 1;
-    font-weight: bold;
-    font-size: 12px;
-    cursor: pointer;
 }
 
 .em-btn-nav {
     background: white;
     color: #10b981;
     border: 1px solid #10b981;
-    padding: 8px;
-    border-radius: 8px;
-    flex: 1;
-    font-weight: bold;
-    font-size: 12px;
-    cursor: pointer;
 }
 
-.em-btn-primary {
-    background: #10b981;
-    color: white;
-}
-
-/* Ward Member / Panchayath request card */
-.em-request-card {
-    border: 1px solid #d1fae5;
-}
-
-/* Messages (SMS-style) */
-.em-message-list {
+/* ==========================================
+   7. ⏱️ Active Response Timeline Design
+   ========================================== */
+.em-timeline-card h4 {
+    margin: 0 0 16px 0;
+    font-size: 15px;
+    color: #0f172a;
     display: flex;
-    flex-direction: column;
-    gap: 10px;
-    max-height: 320px;
-    overflow-y: auto;
-}
-
-.em-message-bubble {
-    background: #ecfdf5;
-    border: 1px solid #bbf7d0;
-    border-radius: 12px 12px 12px 2px;
-    padding: 10px 14px;
-    animation: fadeIn 0.4s ease;
-}
-
-.em-message-bubble p {
-    margin: 4px 0 0 0;
-    font-size: 13px;
-    color: #14532d;
-}
-
-.em-message-meta {
-    display: flex;
-    justify-content: space-between;
-    font-size: 10px;
-    font-weight: bold;
-    color: #059669;
-}
-
-.em-notif-bubble {
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: 10px;
-    padding: 10px 14px;
-    margin-bottom: 8px;
-    animation: fadeIn 0.4s ease;
-}
-
-.em-notif-bubble p {
-    margin: 0;
-    font-size: 13px;
-    color: #1e293b;
-}
-
-.em-notif-bubble span {
-    font-size: 10px;
-    color: #94a3b8;
-}
-
-/* Right Column Cards */
-.em-weather-card {
-    background: linear-gradient(135deg, #059669, #047857);
-    color: white;
-    border: none;
-}
-
-.em-weather-label {
-    font-size: 10px;
-    font-weight: bold;
-    opacity: 0.9;
-}
-
-.em-weather-card h3 {
-    margin: 5px 0 15px 0;
-    font-size: 18px;
-}
-
-.em-weather-bottom {
-    display: flex;
-    justify-content: space-between;
     align-items: center;
-}
-
-.em-temp {
-    font-size: 20px;
-    font-weight: bold;
-}
-
-.em-weather-badge {
-    background: rgba(0, 0, 0, 0.2);
-    padding: 4px 10px;
-    border-radius: 20px;
-    font-size: 12px;
-}
-
-.em-timeline-card h4,
-.em-safety-card h4,
-.em-recent-card h4 {
-    margin: 0 0 15px 0;
-    font-size: 14px;
-    color: #1e293b;
+    gap: 6px;
 }
 
 .em-timeline-empty {
-    font-size: 12px;
+    font-size: 13px;
     color: #94a3b8;
+    background: #f8fafc;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px dashed #cbd5e1;
+    text-align: center;
+    margin: 0;
 }
 
 .em-timeline {
@@ -716,195 +441,271 @@
     flex-direction: column;
     gap: 20px;
     position: relative;
-    padding-left: 10px;
-    border-left: 2px dashed #e2e8f0;
-    margin-left: 10px;
+    padding-left: 12px;
+    margin-left: 8px;
+    border-left: 2px dashed #cbd5e1;
 }
 
 .em-time-item {
     display: flex;
     align-items: flex-start;
-    gap: 15px;
+    gap: 12px;
     position: relative;
-    left: -11px;
+    left: -19px; /* ടൈംലൈൻ ലൈനിലേക്ക് ഡോട്ട് കൃത്യമായി ഇരിക്കാൻ */
+    min-width: 0;
 }
 
 .em-dot {
-    width: 20px;
-    height: 20px;
+    width: 12px;
+    height: 12px;
     border-radius: 50%;
     background: white;
-    border: 2px solid #cbd5e1;
+    border: 3px solid #cbd5e1;
+    flex-shrink: 0;
+    margin-top: 3px;
     transition: all 0.3s ease;
 }
 
 .green-dot {
     background: #10b981;
     border-color: #10b981;
-    box-shadow: 0 0 0 4px #dcfce7;
+    box-shadow: 0 0 0 3px #dcfce7;
 }
 
 .pulse-dot {
     animation: dotPulse 1.4s ease-in-out infinite;
 }
 
-@keyframes dotPulse {
-    0% {
-        box-shadow: 0 0 0 4px #dcfce7;
-    }
-
-    50% {
-        box-shadow: 0 0 0 9px #dcfce7;
-    }
-
-    100% {
-        box-shadow: 0 0 0 4px #dcfce7;
-    }
-}
-
 .em-time-text {
     display: flex;
     flex-direction: column;
+    min-width: 0;
+    flex: 1;
 }
 
 .em-time-text strong {
     font-size: 13px;
-    color: #10b981;
+    color: #1e293b;
+    word-break: break-word;
 }
 
 .em-time-text span {
     font-size: 11px;
-    color: #94a3b8;
+    color: #64748b;
     margin-top: 2px;
+    line-height: 1.4;
+    word-break: break-word;
 }
 
-.inactive strong {
+.em-time-item.completed .em-time-text strong {
+    color: #10b981;
+}
+
+.em-time-item.active .em-time-text strong {
+    color: #2563eb;
+}
+
+.em-time-item.inactive .em-time-text strong {
     color: #94a3b8;
 }
 
-.inactive span {
-    font-size: 13px;
-    color: #94a3b8;
-    line-height: 20px;
-}
-
-.em-btn-resolve {
-    margin-top: 16px;
-    width: 100%;
-    background: #0f172a;
-    color: white;
-    border: none;
-    padding: 10px;
-    border-radius: 10px;
-    font-weight: bold;
-    font-size: 13px;
-    cursor: pointer;
-}
-
-.em-safety-card ul {
-    margin: 0;
-    padding-left: 20px;
-    font-size: 12px;
-    color: #475569;
-    line-height: 1.6;
-}
-
-.em-safety-card li {
-    margin-bottom: 8px;
+/* ==========================================
+   8. ⏱️ Past Emergency History Design
+   ========================================== */
+.em-recent-card h4 {
+    margin: 0 0 14px 0;
+    font-size: 15px;
+    color: #0f172a;
 }
 
 .em-recent-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 15px;
-}
-
-.em-view-all {
-    font-size: 10px;
-    font-weight: bold;
-    color: #10b981;
-    cursor: pointer;
+    margin-bottom: 12px;
 }
 
 .em-recent-list {
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 10px;
 }
 
 .em-recent-item {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
+    padding: 10px;
+    border-radius: 10px;
+    border: 1px solid #f1f5f9;
+    background: #fafafa;
+    min-width: 0;
 }
 
 .em-rec-icon {
-    width: 36px;
-    height: 36px;
+    width: 38px;
+    height: 38px;
     border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 16px;
+    font-size: 18px;
+    flex-shrink: 0;
 }
 
-.med-icon {
-    background: #dcfce7;
-    color: #166534;
-}
-
-.elec-icon {
-    background: #fef3c7;
-    color: #92400e;
-}
-
-.acc-icon {
-    background: #fee2e2;
-    color: #b91c1c;
-}
-
-.police-icon {
-    background: #dbeafe;
-    color: #1e40af;
-}
-
-.flood-icon {
-    background: #e0f2fe;
-    color: #075985;
-}
-
-.fire-icon {
-    background: #ffedd5;
-    color: #9a3412;
-}
-
-.other-icon {
-    background: #f1f5f9;
-    color: #475569;
-}
+/* Icon Variants */
+.med-icon { background: #dcfce7; color: #166534; }
+.police-icon { background: #dbeafe; color: #1e40af; }
+.flood-icon { background: #e0f2fe; color: #075985; }
+.fire-icon { background: #ffedd5; color: #9a3412; }
+.acc-icon { background: #fee2e2; color: #b91c1c; }
+.elec-icon { background: #fef3c7; color: #92400e; }
+.other-icon { background: #f1f5f9; color: #475569; }
 
 .em-rec-info {
     flex: 1;
     display: flex;
     flex-direction: column;
+    min-width: 0;
 }
 
 .em-rec-info strong {
     font-size: 13px;
     color: #1e293b;
+    word-break: break-word;
 }
 
-.em-rec-info span {
-    font-size: 11px;
+.em-rec-time {
+    font-size: 10px;
     color: #94a3b8;
+    margin-top: 2px;
 }
 
 .em-tag {
-    font-size: 9px;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 6px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* ==========================================
+   9. Buttons, Modals & Toast
+   ========================================== */
+.em-btn-resolve {
+    margin-top: 12px;
+    width: 100%;
+    background: #0f172a;
+    color: white;
+    border: none;
+    padding: 10px;
+    border-radius: 8px;
     font-weight: bold;
-    background: #f1f5f9;
-    color: #10b981;
-    padding: 4px 8px;
-    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.em-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    padding: 16px;
+}
+
+.em-modal-box {
+    background: white;
+    border-radius: 16px;
+    padding: 20px;
+    max-width: 340px;
+    width: 100%;
+    text-align: center;
+}
+
+.em-btn-allow-loc {
+    background: #dbeafe;
+    border: none;
+    border-radius: 999px;
+    padding: 10px;
+    width: 100%;
+    margin-bottom: 8px;
+    cursor: pointer;
+    font-weight: 700;
+    color: #1e3a8a;
+}
+
+.em-btn-danger {
+    background: #ef4444 !important;
+    color: white;
+}
+
+.em-toast {
+    position: fixed;
+    top: 15px;
+    right: 15px;
+    left: 15px;
+    background: #0f172a;
+    color: white;
+    padding: 12px 16px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 600;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    z-index: 3000;
+    text-align: center;
+}
+
+@keyframes sosPulse {
+    0% { box-shadow: 0 12px 25px rgba(230, 57, 70, 0.3), 0 0 0 0 rgba(230, 57, 70, 0.5); }
+    70% { box-shadow: 0 12px 25px rgba(230, 57, 70, 0.3), 0 0 0 18px rgba(230, 57, 70, 0); }
+    100% { box-shadow: 0 12px 25px rgba(230, 57, 70, 0.3), 0 0 0 0 rgba(230, 57, 70, 0); }
+}
+
+@keyframes dotPulse {
+    0% { box-shadow: 0 0 0 3px #dcfce7; }
+    50% { box-shadow: 0 0 0 7px #dcfce7; }
+    100% { box-shadow: 0 0 0 3px #dcfce7; }
+}
+
+/* ==========================================
+   10. Media Queries (Mobile Fixes)
+   ========================================== */
+@media (min-width: 600px) {
+    .em-sos-quick-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 900px) {
+    .em-main-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 600px) {
+    .em-container {
+        padding: 10px;
+    }
+
+    .em-card {
+        padding: 12px;
+        border-radius: 12px;
+    }
+
+    .em-resource-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .em-recent-item {
+        flex-wrap: wrap;
+    }
+
+    .em-tag {
+        margin-left: auto;
+    }
 }

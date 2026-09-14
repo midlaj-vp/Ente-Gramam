@@ -1,0 +1,91 @@
+/* =========================================================
+   🌙 COMPLETE GLOBAL DARK MODE (index.css)
+   ========================================================= */
+
+/* 1. Global Page Body & Main Containers */
+[data-theme="dark"],
+body.dark-theme,
+[data-theme="dark"] body,
+[data-theme="dark"] #root,
+[data-theme="dark"] .app-layout,
+[data-theme="dark"] .main-content,
+[data-theme="dark"] .content-wrapper,
+[data-theme="dark"] div[class*="container"] {
+  background-color: #0f172a !important;
+  color: #f8fafc !important;
+}
+
+/* 2. Sidebar / Navigation Drawer Override */
+[data-theme="dark"] .sidebar,
+[data-theme="dark"] aside,
+[data-theme="dark"] nav,
+[data-theme="dark"] .sidebar-container,
+[data-theme="dark"] div[class*="sidebar"] {
+  background-color: #1e293b !important;
+  border-right: 1px solid #334155 !important;
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .sidebar a,
+[data-theme="dark"] aside a,
+[data-theme="dark"] .nav-item {
+  color: #cbd5e1 !important;
+}
+
+/* 3. Top Header, Navbar & Search Bar */
+[data-theme="dark"] header,
+[data-theme="dark"] .top-header,
+[data-theme="dark"] .navbar,
+[data-theme="dark"] .header-container,
+[data-theme="dark"] div[class*="header"] {
+  background-color: #1e293b !important;
+  border-bottom: 1px solid #334155 !important;
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] input,
+[data-theme="dark"] select,
+[data-theme="dark"] textarea,
+[data-theme="dark"] .search-bar {
+  background-color: #334155 !important;
+  color: #ffffff !important;
+  border: 1px solid #475569 !important;
+}
+
+/* 4. Notification Cards & All Sub-cards */
+[data-theme="dark"] .card,
+[data-theme="dark"] .notification-card,
+[data-theme="dark"] .notification-item,
+[data-theme="dark"] .dash-card,
+[data-theme="dark"] .general-form-card,
+[data-theme="dark"] div[class*="card"] {
+  background-color: #1e293b !important;
+  border: 1px solid #334155 !important;
+  color: #f8fafc !important;
+  box-shadow: none !important;
+}
+
+/* Filter Pills / Buttons in Notifications */
+[data-theme="dark"] .filter-btn,
+[data-theme="dark"] button:not(.btn-primary):not(.submit-btn) {
+  background-color: #334155 !important;
+  color: #f8fafc !important;
+  border-color: #475569 !important;
+}
+
+/* 5. Typography Contrast Fixes */
+[data-theme="dark"] h1,
+[data-theme="dark"] h2,
+[data-theme="dark"] h3,
+[data-theme="dark"] h4,
+[data-theme="dark"] h5,
+[data-theme="dark"] h6,
+[data-theme="dark"] strong {
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] p,
+[data-theme="dark"] span,
+[data-theme="dark"] label {
+  color: #94a3b8 !important;
+}

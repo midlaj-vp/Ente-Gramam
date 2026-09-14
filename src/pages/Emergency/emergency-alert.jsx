@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { AlertTriangle, Send, Trash2 } from "lucide-react"; // Added Trash2
+import { AlertTriangle, Send, Trash2, Volume2 } from "lucide-react";
+import api from "../../axiosInstance";
 import "./EmergencyAlert.css";
 
 const MAX_CHAR_COUNT = 500;
@@ -16,7 +17,16 @@ export default function EmergencyAlert() {
 
   const [emergencyAlertsHistory, setEmergencyAlertsHistory] = useState([]);
 
-  // --- User Role and Ward Detection ---
+  const playEmergencySiren = () => {
+    try {
+      const audio = new Audio("/alert.mp3");
+      audio.currentTime = 0;
+      audio.play().catch((e) => console.error("Audio playback error:", e));
+    } catch (e) {
+      console.error("Audio error:", e);
+    }
+  };
+
   useEffect(() => {
     try {
       const rawUser = localStorage.getItem("loggedInUser") || localStorage.getItem("user");
@@ -41,59 +51,45 @@ export default function EmergencyAlert() {
           detectedWardNo = parsedUser.wardNumber;
           detectedWardName = `Ward ${parsedUser.wardNumber}`;
         }
-        setWardInfo({ wardName: detectedWardName, wardNo: detectedWardNo });
+        setWardInfo({ wardName: detectedWardName, wardNo: String(detectedWardNo) });
       }
     } catch (e) {
       console.error("Failed to parse user from localStorage:", e);
-      // Fallback to no user or invalid role
       setUserRole("");
     }
   }, []);
 
-  // --- History Management ---
-  const getStoredAlerts = useCallback(() => {
+  const fetchAlertsFromBackend = useCallback(async () => {
     try {
-      const alerts = JSON.parse(localStorage.getItem("emergencyAlerts") || "[]");
-      return Array.isArray(alerts) ? alerts : [];
+      const res = await api.get("emergency-alerts/");
+      const results = Array.isArray(res.data) ? res.data : res.data.results || [];
+      setEmergencyAlertsHistory(results);
     } catch (e) {
-      console.error("Failed to parse emergencyAlerts from localStorage:", e);
-      return [];
+      console.error("Failed to fetch alerts from backend:", e);
     }
   }, []);
 
-  const updateHistoryFromStorage = useCallback(() => {
-    setEmergencyAlertsHistory(getStoredAlerts());
-  }, [getStoredAlerts]);
-
   useEffect(() => {
-    updateHistoryFromStorage(); // Initial load
-
-    // Listen for custom event and storage event
-    window.addEventListener("new-emergency-alert", updateHistoryFromStorage);
-    window.addEventListener("storage", updateHistoryFromStorage);
-
-    return () => {
-      window.removeEventListener("new-emergency-alert", updateHistoryFromStorage);
-      window.removeEventListener("storage", updateHistoryFromStorage);
-    };
-  }, [updateHistoryFromStorage]);
+    fetchAlertsFromBackend();
+    const interval = setInterval(fetchAlertsFromBackend, 15000); 
+    return () => clearInterval(interval);
+  }, [fetchAlertsFromBackend]);
 
   const filteredHistory = useMemo(() => {
     if (!loggedInUser || !wardInfo.wardNo) return [];
     return emergencyAlertsHistory
       .filter(alert =>
-        alert.senderId === loggedInUser.id && // Only show alerts sent by this specific ward member
-        alert.wardNo === wardInfo.wardNo
+        String(alert.sender_id) === String(loggedInUser.id) &&
+        String(alert.ward_no) === String(wardInfo.wardNo)
       )
-      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)); // Newest first
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
   }, [emergencyAlertsHistory, loggedInUser, wardInfo.wardNo]);
 
-  // --- Form Handlers ---
   const handleReasonChange = (e) => {
     const value = e.target.value;
     if (value.length <= MAX_CHAR_COUNT) {
       setReason(value);
-      setValidationError(""); // Clear validation error on change
+      setValidationError("");
     }
   };
 
@@ -118,53 +114,37 @@ export default function EmergencyAlert() {
     setSuccessMessage("");
 
     try {
-      const newAlert = {
-        id: `alert_${Date.now()}`, // Unique ID
+      const payload = {
         title: "Emergency Alert",
         message: trimmedReason,
-        wardName: wardInfo.wardName,
-        wardNo: wardInfo.wardNo,
-        senderId: loggedInUser.id,
-        senderName: loggedInUser.name || "Ward Member", // Fallback sender name
-        senderRole: "ward",
-        createdAt: new Date().toISOString(),
-        status: "active",
-        read: false,
+        ward_name: wardInfo.wardName,
+        ward_no: String(wardInfo.wardNo),
+        sender_id: String(loggedInUser.id),
+        sender_name: loggedInUser.name || loggedInUser.username || "Ward Member",
+        sender_role: "ward",
+        status: "active"
       };
 
-      const currentAlerts = getStoredAlerts();
-      const updatedAlerts = [newAlert, ...currentAlerts]; // Add new alert at the beginning
+      await api.post("emergency-alerts/", payload);
 
-      localStorage.setItem("emergencyAlerts", JSON.stringify(updatedAlerts));
+      setReason("");
+      setSuccessMessage("Emergency alert sent successfully to citizens.");
+      fetchAlertsFromBackend();
 
-      // Dispatch custom event for other tabs/windows
-      window.dispatchEvent(
-        new CustomEvent("new-emergency-alert", {
-          detail: newAlert,
-        })
-      );
-
-      setReason(""); // Clear textarea
-      setSuccessMessage("Emergency alert sent successfully.");
-
-      // Automatically clear success message after a few seconds
       setTimeout(() => setSuccessMessage(""), 5000);
-
     } catch (error) {
       console.error("Error sending emergency alert:", error);
-      setValidationError("Failed to send alert. Please try again.");
+      setValidationError("Failed to send alert. Please check connection.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleRemoveAlert = (alertId) => {
-    if (window.confirm("Are you sure you want to remove this emergency alert from history? This action cannot be undone.")) {
+  const handleRemoveAlert = async (alertId) => {
+    if (window.confirm("Are you sure you want to remove this emergency alert from history?")) {
       try {
-        const currentAlerts = getStoredAlerts();
-        const updatedAlerts = currentAlerts.filter(alert => alert.id !== alertId);
-        localStorage.setItem("emergencyAlerts", JSON.stringify(updatedAlerts));
-        updateHistoryFromStorage(); // Refresh the history display
+        await api.delete(`emergency-alerts/${alertId}/`);
+        setEmergencyAlertsHistory(prev => prev.filter(item => item.id !== alertId));
       } catch (error) {
         console.error("Error removing alert:", error);
         alert("Failed to remove alert.");
@@ -235,14 +215,35 @@ export default function EmergencyAlert() {
           {validationError && <p className="ea-error-message">{validationError}</p>}
           {successMessage && <p className="ea-success-message">{successMessage}</p>}
 
-          <button
-            className="ea-send-button"
-            onClick={handleSubmit}
-            disabled={isSubmitting || !reason.trim() || reason.length > MAX_CHAR_COUNT}
-          >
-            <Send size={18} />
-            {isSubmitting ? "Sending..." : "Send Emergency Alert"}
-          </button>
+          <div style={{ display: "flex", gap: "12px", marginTop: "12px" }}>
+            <button
+              className="ea-send-button"
+              onClick={handleSubmit}
+              disabled={isSubmitting || !reason.trim() || reason.length > MAX_CHAR_COUNT}
+              style={{ flex: 1 }}
+            >
+              <Send size={18} />
+              {isSubmitting ? "Sending..." : "Send Emergency Alert"}
+            </button>
+            <button
+              type="button"
+              onClick={playEmergencySiren}
+              title="Test Emergency Siren Sound"
+              style={{
+                padding: "10px 14px",
+                borderRadius: "8px",
+                border: "1px solid #dc2626",
+                background: "#fef2f2",
+                color: "#dc2626",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "6px"
+              }}
+            >
+              <Volume2 size={18} /> Test Sound
+            </button>
+          </div>
         </div>
       </div>
 
@@ -256,7 +257,7 @@ export default function EmergencyAlert() {
                   <AlertTriangle size={16} className="ea-history-icon" />
                   <span className="ea-history-title">{alert.title}</span>
                   <span className="ea-history-date">
-                    {formatDate(alert.createdAt)}
+                    {formatDate(alert.created_at)}
                   </span>
                   <button
                     className="ea-remove-alert-btn"
@@ -271,8 +272,8 @@ export default function EmergencyAlert() {
                   <span className="ea-history-status">
                     <span className="ea-dot ea-dot-green"></span> Sent
                   </span>
-                  <span className="ea-history-ward">Ward: {alert.wardName}</span>
-                  <span className="ea-history-time">Time: {formatTime(alert.createdAt)}</span>
+                  <span className="ea-history-ward">Ward: {alert.ward_name}</span>
+                  <span className="ea-history-time">Time: {formatTime(alert.created_at)}</span>
                 </div>
               </div>
             ))

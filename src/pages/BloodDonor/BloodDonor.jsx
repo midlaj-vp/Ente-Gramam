@@ -1,38 +1,40 @@
 import React, { useState, useEffect } from "react";
+import api from "../../axiosInstance";
 import "./BloodDonor.css";
+
+const formatWardName = (rawWard) => {
+    if (!rawWard) return "Ward 01";
+    let str = String(rawWard).trim();
+    if (/^\d+$/.test(str)) {
+        return `Ward ${str.padStart(2, '0')}`;
+    }
+    const numMatch = str.match(/\d+/);
+    if (numMatch) {
+        return `Ward ${numMatch[0].padStart(2, '0')}`;
+    }
+    return str;
+};
 
 export default function BloodDonorPage() {
     const [donors, setDonors] = useState([]);
     const [userRole, setUserRole] = useState("citizen");
-    const [currentWard, setCurrentWard] = useState("Ward 07");
+    const [currentWard, setCurrentWard] = useState("Ward 01");
     const [currentUserPhone, setCurrentUserPhone] = useState("");
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedGroup, setSelectedGroup] = useState("All Groups");
     const [availableOnly, setAvailableOnly] = useState(false);
     
-    // Registration & Editing States
     const [showRegisterModal, setShowRegisterModal] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [editingDonorId, setEditingDonorId] = useState(null);
     const [name, setName] = useState("");
     const [bloodGroup, setBloodGroup] = useState("O+");
     const [phone, setPhone] = useState("");
-    const [dob, setDob] = useState(""); // Date of Birth State
-    const [selectedWard, setSelectedWard] = useState("Ward 07");
+    const [dob, setDob] = useState("");
+    const [selectedWard, setSelectedWard] = useState("Ward 01");
     const [lastDonatedDate, setLastDonatedDate] = useState("");
 
-    // Multiple Urgent Requests State
-    const [urgentRequests, setUrgentRequests] = useState([
-        {
-            id: 1,
-            title: "Emergency Blood Needed: O Negative",
-            hospital: "Taluk Hospital, Punalur",
-            patient: "Varun",
-            bloodGroup: "O-",
-            phone: "+919876543200",
-            timeAgo: "12 minutes ago"
-        }
-    ]);
+    const [urgentRequests, setUrgentRequests] = useState([]);
     const [showUrgentModal, setShowUrgentModal] = useState(false);
     const [editingUrgentId, setEditingUrgentId] = useState(null);
     const [urgentTitle, setUrgentTitle] = useState("");
@@ -40,6 +42,26 @@ export default function BloodDonorPage() {
     const [urgentPatient, setUrgentPatient] = useState("");
     const [urgentBloodGroup, setUrgentBloodGroup] = useState("O+");
     const [urgentPhone, setUrgentPhone] = useState("");
+
+    const fetchDonors = async () => {
+        try {
+            const res = await api.get("donors/");
+            const data = res.data;
+            setDonors(Array.isArray(data) ? data : data.results || []);
+        } catch (err) {
+            console.error("Error fetching donors:", err);
+        }
+    };
+
+    const fetchUrgentRequests = async () => {
+        try {
+            const res = await api.get("urgent-requests/");
+            const data = res.data;
+            setUrgentRequests(Array.isArray(data) ? data : data.results || []);
+        } catch (err) {
+            console.error("Error fetching urgent requests:", err);
+        }
+    };
 
     useEffect(() => {
         let loggedInUser = {};
@@ -56,82 +78,30 @@ export default function BloodDonorPage() {
         const role = (loggedInUser.role || localStorage.getItem("userRole") || "citizen").toLowerCase();
         setUserRole(role);
 
-        const userWard = loggedInUser.ward || localStorage.getItem("userWard") || "Ward 07";
+        const rawWard = loggedInUser.wardName || 
+                        loggedInUser.ward || 
+                        loggedInUser.wardNumber || 
+                        loggedInUser.ward_number || 
+                        localStorage.getItem("userWard") || 
+                        localStorage.getItem("ward") || 
+                        "Ward 01";
+
+        const userWard = formatWardName(rawWard);
         setCurrentWard(userWard);
         setSelectedWard(userWard);
 
-        const phoneNum = loggedInUser.phone || "+919876543210";
+        const phoneNum = loggedInUser.phone || loggedInUser.mobile || loggedInUser.mobileNumber || localStorage.getItem("userPhone") || "";
         setCurrentUserPhone(phoneNum);
 
-        // Initial Donors
-        const defaultDonors = [
-            {
-                id: 1,
-                name: "Rahul Chandran",
-                bloodGroup: "A+",
-                ward: "Ward 07",
-                location: "Green Valley",
-                dob: "1995-05-12",
-                lastDonated: "2023-08-15",
-                totalDonations: 8,
-                phone: "+919876543210",
-                registeredBy: "+919876543210",
-                available: true
-            },
-            {
-                id: 2,
-                name: "Meera Varghese",
-                bloodGroup: "B+",
-                ward: "Ward 07",
-                location: "Rose Gardens",
-                dob: "1998-11-20",
-                lastDonated: "2024-01-10",
-                totalDonations: 12,
-                phone: "+919876543211",
-                registeredBy: "system",
-                available: true
-            }
-        ];
-
-        const savedDonors = localStorage.getItem("ente_gramam_donors");
-        if (savedDonors) {
-            try {
-                setDonors(JSON.parse(savedDonors));
-            } catch (err) {
-                setDonors(defaultDonors);
-            }
-        } else {
-            setDonors(defaultDonors);
-            localStorage.setItem("ente_gramam_donors", JSON.stringify(defaultDonors));
-        }
-
-        const loadUrgentRequests = () => {
-            const savedUrgent = localStorage.getItem("ente_gramam_multiple_urgent");
-            if (savedUrgent) {
-                try {
-                    setUrgentRequests(JSON.parse(savedUrgent));
-                } catch (e) {}
-            }
-        };
-
-        loadUrgentRequests();
-
-        window.addEventListener("storage", loadUrgentRequests);
-        window.addEventListener("urgentUpdated", loadUrgentRequests);
-
-        return () => {
-            window.removeEventListener("storage", loadUrgentRequests);
-            window.removeEventListener("urgentUpdated", loadUrgentRequests);
-        };
+        fetchDonors();
+        fetchUrgentRequests();
     }, []);
 
     const isPrivileged = userRole.includes("panchayat") || userRole.includes("admin") || userRole.includes("ward");
 
-    // Count family members registered by current citizen user
-    const userRegistrations = donors.filter(d => d.registeredBy === currentUserPhone);
+    const userRegistrations = donors.filter(d => d.registered_by === currentUserPhone);
     const citizenRegistrationCount = userRegistrations.length;
 
-    // Age Calculation Helper
     const calculateAge = (birthDateStr) => {
         if (!birthDateStr) return 0;
         const today = new Date();
@@ -185,11 +155,9 @@ export default function BloodDonorPage() {
         window.open(`https://wa.me/${cleanPhone}?text=${message}`, "_blank");
     };
 
-    // Handle Register / Update Form Submit
-    const handleRegisterSubmit = (e) => {
+    const handleRegisterSubmit = async (e) => {
         e.preventDefault();
 
-        // Strict DOB Validation Check
         if (!dob) {
             alert("Registration failed: Date of Birth is required.");
             return;
@@ -206,49 +174,33 @@ export default function BloodDonorPage() {
             return;
         }
 
-        let updated;
         const targetWard = isPrivileged ? selectedWard : currentWard;
+        const payload = {
+            name,
+            blood_group: bloodGroup,
+            phone,
+            dob,
+            ward: targetWard,
+            location: "Local Area",
+            last_donated: lastDonatedDate || null,
+            registered_by: currentUserPhone
+        };
 
-        if (isEditing) {
-            updated = donors.map(d => {
-                if (d.id === editingDonorId || d.phone === phone) {
-                    const newTotal = (d.totalDonations || 0) + (lastDonatedDate && lastDonatedDate !== d.lastDonated ? 1 : 0);
-                    return {
-                        ...d,
-                        name,
-                        bloodGroup,
-                        phone,
-                        dob,
-                        ward: targetWard,
-                        lastDonated: lastDonatedDate,
-                        totalDonations: newTotal,
-                        available: !isWithinThreeMonths(lastDonatedDate)
-                    };
-                }
-                return d;
-            });
-            alert("Blood Donor details updated successfully!");
-        } else {
-            const newDonor = {
-                id: Date.now(),
-                name,
-                bloodGroup,
-                phone,
-                dob,
-                ward: targetWard,
-                location: "Local Area",
-                lastDonated: lastDonatedDate,
-                totalDonations: lastDonatedDate ? 1 : 0,
-                registeredBy: currentUserPhone,
-                available: !isWithinThreeMonths(lastDonatedDate)
-            };
-
-            updated = [newDonor, ...donors];
-            alert("Successfully registered new Blood Donor!");
+        try {
+            if (isEditing) {
+                await api.put(`donors/${editingDonorId}/`, payload);
+                alert("Blood Donor details updated successfully!");
+                fetchDonors();
+            } else {
+                await api.post("donors/", payload);
+                alert("Successfully registered new Blood Donor!");
+                fetchDonors();
+            }
+        } catch (error) {
+            console.error("API Error:", error);
+            alert("Error connecting to the server.");
         }
 
-        setDonors(updated);
-        localStorage.setItem("ente_gramam_donors", JSON.stringify(updated));
         setShowRegisterModal(false);
         resetRegisterForm();
     };
@@ -256,59 +208,52 @@ export default function BloodDonorPage() {
     const handleOpenEditModal = (donor) => {
         setEditingDonorId(donor.id);
         setName(donor.name);
-        setBloodGroup(donor.bloodGroup);
+        setBloodGroup(donor.blood_group);
         setPhone(donor.phone);
         setDob(donor.dob || "");
-        setSelectedWard(donor.ward || currentWard);
-        setLastDonatedDate(donor.lastDonated || "");
+        setSelectedWard(donor.ward ? formatWardName(donor.ward) : currentWard);
+        setLastDonatedDate(donor.last_donated || "");
         setIsEditing(true);
         setShowRegisterModal(true);
     };
 
-    const handleDeleteDonor = (id) => {
+    const handleDeleteDonor = async (id) => {
         if (window.confirm("Are you sure you want to remove this donor?")) {
-            const updated = donors.filter(d => d.id !== id);
-            setDonors(updated);
-            localStorage.setItem("ente_gramam_donors", JSON.stringify(updated));
+            try {
+                await api.delete(`donors/${id}/`);
+                fetchDonors();
+            } catch (err) {
+                console.error("Delete Error:", err);
+                alert("Failed to delete donor.");
+            }
         }
     };
 
-    const handleUrgentSubmit = (e) => {
+    const handleUrgentSubmit = async (e) => {
         e.preventDefault();
-        let updatedUrgent;
 
-        if (editingUrgentId) {
-            updatedUrgent = urgentRequests.map(req => {
-                if (req.id === editingUrgentId) {
-                    return {
-                        ...req,
-                        title: urgentTitle,
-                        hospital: urgentHospital,
-                        patient: urgentPatient,
-                        bloodGroup: urgentBloodGroup,
-                        phone: urgentPhone
-                    };
-                }
-                return req;
-            });
-            alert("Urgent Blood Request updated successfully!");
-        } else {
-            const newEntry = {
-                id: Date.now(),
-                title: urgentTitle,
-                hospital: urgentHospital,
-                patient: urgentPatient,
-                bloodGroup: urgentBloodGroup,
-                phone: urgentPhone,
-                timeAgo: "Just now"
-            };
-            updatedUrgent = [newEntry, ...urgentRequests];
-            alert("Urgent Blood Request posted successfully!");
+        const payload = {
+            title: urgentTitle,
+            hospital: urgentHospital,
+            patient: urgentPatient,
+            blood_group: urgentBloodGroup,
+            phone: urgentPhone,
+            ward: currentWard
+        };
+
+        try {
+            if (editingUrgentId) {
+                await api.put(`urgent-requests/${editingUrgentId}/`, payload);
+                alert("Urgent Blood Request updated successfully!");
+                fetchUrgentRequests();
+            } else {
+                await api.post("urgent-requests/", payload);
+                alert("Urgent Blood Request posted successfully!");
+                fetchUrgentRequests();
+            }
+        } catch (error) {
+            console.error("Urgent Submit Error:", error);
         }
-
-        setUrgentRequests(updatedUrgent);
-        localStorage.setItem("ente_gramam_multiple_urgent", JSON.stringify(updatedUrgent));
-        window.dispatchEvent(new Event("urgentUpdated"));
 
         setShowUrgentModal(false);
         setEditingUrgentId(null);
@@ -324,29 +269,34 @@ export default function BloodDonorPage() {
         setUrgentTitle(req.title);
         setUrgentHospital(req.hospital);
         setUrgentPatient(req.patient);
-        setUrgentBloodGroup(req.bloodGroup || "O+");
+        setUrgentBloodGroup(req.blood_group || "O+");
         setUrgentPhone(req.phone);
         setShowUrgentModal(true);
     };
 
-    const handleRemoveUrgent = (id) => {
+    const handleRemoveUrgent = async (id) => {
         if (window.confirm("Remove this urgent request?")) {
-            const updated = urgentRequests.filter(item => item.id !== id);
-            setUrgentRequests(updated);
-            localStorage.setItem("ente_gramam_multiple_urgent", JSON.stringify(updated));
-            window.dispatchEvent(new Event("urgentUpdated"));
+            try {
+                await api.delete(`urgent-requests/${id}/`);
+                fetchUrgentRequests();
+            } catch (err) {
+                console.error("Error deleting urgent request:", err);
+            }
         }
     };
 
     const filteredDonors = donors.filter(d => {
+        const donorWard = formatWardName(d.ward || currentWard);
+        const matchesWard = isPrivileged || donorWard.toLowerCase() === currentWard.toLowerCase();
+
         const matchesSearch = 
             d.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-            d.bloodGroup.toLowerCase().includes(searchQuery.toLowerCase());
+            d.blood_group.toLowerCase().includes(searchQuery.toLowerCase());
         
-        const matchesGroup = selectedGroup === "All Groups" || d.bloodGroup === selectedGroup;
+        const matchesGroup = selectedGroup === "All Groups" || d.blood_group === selectedGroup;
         const matchesAvailability = !availableOnly || d.available;
 
-        return matchesSearch && matchesGroup && matchesAvailability;
+        return matchesWard && matchesSearch && matchesGroup && matchesAvailability;
     });
 
     const todayString = new Date().toISOString().split("T")[0];
@@ -363,14 +313,14 @@ export default function BloodDonorPage() {
                         <span className="stat-icon">👥</span>
                         <div>
                             <h4>TOTAL DONORS</h4>
-                            <h3>{donors.length}</h3>
+                            <h3>{filteredDonors.length}</h3>
                         </div>
                     </div>
                     <div className="stat-card">
                         <span className="stat-icon">🩸</span>
                         <div>
                             <h4>AVAILABLE</h4>
-                            <h3>{donors.filter(d => d.available).length}</h3>
+                            <h3>{filteredDonors.filter(d => d.available).length}</h3>
                         </div>
                     </div>
                 </div>
@@ -392,18 +342,20 @@ export default function BloodDonorPage() {
                 </div>
             )}
 
-            {urgentRequests.map((req) => (
+            {urgentRequests
+                .filter(req => isPrivileged || formatWardName(req.ward || currentWard).toLowerCase() === currentWard.toLowerCase())
+                .map((req) => (
                 <div key={req.id} className="urgent-alert-banner" style={{ marginBottom: "15px" }}>
                     <div className="urgent-left">
                         <div className="urgent-badge-row">
-                            <span className="urgent-badge">URGENT REQUEST ({req.bloodGroup || "General"})</span>
-                            <span className="urgent-time">{req.timeAgo}</span>
+                            <span className="urgent-badge">URGENT REQUEST ({req.blood_group || "General"})</span>
+                            <span className="urgent-time">Recently</span>
                         </div>
                         <h4>{req.title}</h4>
                         <p>📍 {req.hospital} • Patient: {req.patient}</p>
                     </div>
                     <div className="urgent-actions">
-                        <button className="btn-contact-attendant" onClick={() => handleConnectAttendant(req.phone, req.patient, req.bloodGroup)}>
+                        <button className="btn-contact-attendant" onClick={() => handleConnectAttendant(req.phone, req.patient, req.blood_group)}>
                             📞 Contact Attendant
                         </button>
                         {isPrivileged && (
@@ -479,8 +431,8 @@ export default function BloodDonorPage() {
                 </div>
 
                 {filteredDonors.map((donor) => {
-                    const recentlyDonated = isWithinThreeMonths(donor.lastDonated);
-                    const isOwner = donor.registeredBy === currentUserPhone;
+                    const recentlyDonated = isWithinThreeMonths(donor.last_donated);
+                    const isOwner = donor.registered_by === currentUserPhone;
                     const donorAge = donor.dob ? calculateAge(donor.dob) : null;
 
                     return (
@@ -489,19 +441,19 @@ export default function BloodDonorPage() {
                                 <div className="donor-avatar">👤</div>
                                 <div>
                                     <h4>{donor.name} {donorAge ? `(${donorAge} yrs)` : ""}</h4>
-                                    <p>{donor.ward}, {donor.location}</p>
+                                    <p>{formatWardName(donor.ward || currentWard)}, {donor.location || "Local Area"}</p>
                                 </div>
-                                <span className="donor-bg-badge">{donor.bloodGroup}</span>
+                                <span className="donor-bg-badge">{donor.blood_group}</span>
                             </div>
 
                             <div className="donor-card-body">
                                 <div className="donor-info-row">
                                     <span>Last Donated</span>
-                                    <strong>{donor.lastDonated ? donor.lastDonated : "Never"}</strong>
+                                    <strong>{donor.last_donated ? donor.last_donated : "Never"}</strong>
                                 </div>
                                 <div className="donor-info-row">
                                     <span>Total Donations</span>
-                                    <strong>{donor.totalDonations} Times</strong>
+                                    <strong>{donor.total_donations || 0} Times</strong>
                                 </div>
                                 {recentlyDonated && (
                                     <div className="recent-donation-tag">Recent Donation (&lt; 3 Months)</div>
@@ -547,7 +499,6 @@ export default function BloodDonorPage() {
                 })}
             </div>
 
-            {/* Registration Modal */}
             {showRegisterModal && (
                 <div className="modal-overlay">
                     <div className="modal-box">
@@ -567,7 +518,6 @@ export default function BloodDonorPage() {
                                 />
                             </div>
 
-                            {/* MANDATORY DATE OF BIRTH FIELD */}
                             <div className="form-group">
                                 <label>Date of Birth <span style={{ color: "red" }}>* (Min. 18 Years)</span></label>
                                 <input 
@@ -592,6 +542,7 @@ export default function BloodDonorPage() {
                                     <option value="AB-">AB-</option>
                                 </select>
                             </div>
+
                             <div className="form-group">
                                 <label>Mobile Number (WhatsApp) <span style={{ color: "red" }}>*</span></label>
                                 <input 
@@ -607,16 +558,10 @@ export default function BloodDonorPage() {
                                 <label>Ward {isPrivileged ? "(Admin Mode)" : "(Locked)"}</label>
                                 {isPrivileged ? (
                                     <select value={selectedWard} onChange={(e) => setSelectedWard(e.target.value)}>
-                                        <option value="Ward 01">Ward 01</option>
-                                        <option value="Ward 02">Ward 02</option>
-                                        <option value="Ward 03">Ward 03</option>
-                                        <option value="Ward 04">Ward 04</option>
-                                        <option value="Ward 05">Ward 05</option>
-                                        <option value="Ward 06">Ward 06</option>
-                                        <option value="Ward 07">Ward 07</option>
-                                        <option value="Ward 08">Ward 08</option>
-                                        <option value="Ward 09">Ward 09</option>
-                                        <option value="Ward 10">Ward 10</option>
+                                        {Array.from({ length: 20 }, (_, i) => {
+                                            const wName = `Ward ${String(i + 1).padStart(2, '0')}`;
+                                            return <option key={wName} value={wName}>{wName}</option>;
+                                        })}
                                     </select>
                                 ) : (
                                     <input 
@@ -645,13 +590,12 @@ export default function BloodDonorPage() {
                 </div>
             )}
 
-            {/* Urgent Request Modal */}
             {showUrgentModal && (
                 <div className="modal-overlay">
                     <div className="modal-box">
                         <button className="close-btn" onClick={() => setShowUrgentModal(false)}>&times;</button>
                         <h2>{editingUrgentId ? "Edit Urgent Blood Request" : "Post New Urgent Blood Request"}</h2>
-                        <p>Create or update emergency banner for the ward.</p>
+                        <p>Create or update emergency banner for {currentWard}.</p>
                         
                         <form onSubmit={handleUrgentSubmit}>
                             <div className="form-group">
@@ -673,11 +617,11 @@ export default function BloodDonorPage() {
                             </div>
                             <div className="form-group">
                                 <label>Hospital / Location</label>
-                                <input type="text" value={urgentHospital} onChange={(e) => setUrgentHospital(e.target.value)} required placeholder="e.g. Taluk Hospital, Punalur" />
+                                <input type="text" value={urgentHospital} onChange={(e) => setUrgentHospital(e.target.value)} required placeholder="e.g. Baby Hospital Calicut" />
                             </div>
                             <div className="form-group">
                                 <label>Patient Name</label>
-                                <input type="text" value={urgentPatient} onChange={(e) => setUrgentPatient(e.target.value)} required placeholder="e.g. Varun" />
+                                <input type="text" value={urgentPatient} onChange={(e) => setUrgentPatient(e.target.value)} required placeholder="e.g. Arun" />
                             </div>
                             <div className="form-group">
                                 <label>Attendant WhatsApp Number</label>

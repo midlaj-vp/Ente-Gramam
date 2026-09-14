@@ -19,7 +19,6 @@ export default function PrivacyPolicyPage() {
                     <h2>📜 Privacy Policy & Data Sharing</h2>
                     <p>Last updated: August 2026</p>
                 </div>
-                {/* തിരികെ സെറ്റിങ്സിലേക്ക് പോകാനുള്ള ബാക്ക് ബട്ടൺ */}
                 <button 
                     onClick={() => navigate("/Settings")} 
                     style={{ background: "#e2e8f0", border: "none", padding: "8px 16px", borderRadius: "6px", fontWeight: "bold", cursor: "pointer", color: "#1e293b" }}

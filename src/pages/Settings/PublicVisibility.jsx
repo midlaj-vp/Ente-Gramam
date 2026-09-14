@@ -27,7 +27,6 @@ export default function PublicVisibilityPage() {
                     <h2>👁️ Manage Public Visibility</h2>
                     <p>Control what other citizens and ward members can see on your profile.</p>
                 </div>
-                {/* തിരികെ പോകാനുള്ള ബാക്ക് ബട്ടൺ */}
                 <button 
                     onClick={() => navigate("/Settings")} 
                     style={{ background: "#e2e8f0", border: "none", padding: "8px 16px", borderRadius: "6px", fontWeight: "bold", cursor: "pointer", color: "#1e293b" }}

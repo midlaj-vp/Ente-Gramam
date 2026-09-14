@@ -2,7 +2,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 24px;
+  padding: 10px 24px;
   background-color: #ffffff;
   border-bottom: 1px solid #e4dcc8;
   font-family: 'IBM Plex Sans', sans-serif;
@@ -11,55 +11,63 @@
 .navbar-left {
   display: flex;
   align-items: center;
+  gap: 10px;
   flex: 1;
 }
 
-/* Hamburger Toggle Button */
+/* Hamburger Menu Toggle */
 .menu-toggle {
   display: none;
   background: transparent;
   border: none;
-  font-size: 26px;
+  font-size: 24px;
   color: #1b4332;
   cursor: pointer;
-  margin-right: 15px;
-  padding: 0;
+  margin-right: 8px;
   line-height: 1;
 }
 
-.search-container {
+/* 📅 Compact Pills Matching Provided Reference Design */
+.nav-widget-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: #f2f5f3;
+  border: 1px solid #e2e8f0;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  color: #334155;
+  white-space: nowrap;
+}
+
+.pill-item {
   display: flex;
   align-items: center;
-  background-color: #f6f1e4;
-  border: 1px solid #e4dcc8;
-  border-radius: 8px;
-  padding: 6px 12px;
-  width: 100%;
-  max-width: 300px;
+  gap: 5px;
 }
 
-.search-icon {
-  margin-right: 8px;
+.pill-icon {
+  color: #15803d;
   font-size: 14px;
 }
 
-.search-input {
-  border: none;
-  background: transparent;
-  outline: none;
-  font-size: 14px;
-  color: #24211A;
-  width: 100%;
+.pill-divider {
+  color: #cbd5e1;
+  font-size: 10px;
+  margin: 0 1px;
 }
 
-.search-input::placeholder {
-  color: #A69E8A;
+.pill-ward-text {
+  color: #15803d;
+  font-weight: 700;
 }
 
+/* 🔔 Right Side Navigation Items */
 .navbar-right {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 18px;
 }
 
 .notification-container {
@@ -72,7 +80,8 @@
 
 .notification-icon {
   font-size: 20px;
-  padding: 8px;
+  color: #1b4332;
+  padding: 6px;
   border-radius: 50%;
   transition: background-color 0.2s ease;
 }
@@ -83,33 +92,21 @@
 
 .notification-badge {
   position: absolute;
-  top: 4px;
-  right: 4px;
-  width: 10px;
-  height: 10px;
+  top: 3px;
+  right: 3px;
+  width: 8px;
+  height: 8px;
   background-color: #ff4d4f;
   border-radius: 50%;
-  border: 2px solid #ffffff;
+  border: 1.5px solid #ffffff;
 }
 
+/* 👤 Profile Image Container */
 .user-profile {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   cursor: pointer;
-}
-
-.profile-icon-wrapper {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background-color: #f0ebe1; 
-  color: #24211A;            
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
-  border: 1px solid #e4dcc8;
 }
 
 .profile-img {
@@ -120,37 +117,94 @@
   border: 1px solid #e4dcc8;
 }
 
-.user-profile span {
+.profile-icon-wrapper {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: #f0ebe1;
+  color: #24211A;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  border: 1px solid #e4dcc8;
+}
+
+.username-text {
   font-size: 14px;
   font-weight: 600;
   color: #24211A;
 }
+.nav-widget-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #f2f5f3; /* ചിത്രത്തിലെ ഗ്രീനിഷ്-ഗ്രേ കളർ */
+  border: 1px solid #e2e8f0;
+  padding: 6px 14px;
+  border-radius: 24px;
+  color: #2e382e;
+  line-height: 1.1;
+}
 
-/* Responsive Navbar Behavior */
+/* 2 ലൈനായി ടെക്സ്റ്റ് സ്റ്റാക്ക് ചെയ്യാൻ */
+.pill-text-stack {
+  display: flex;
+  flex-direction: column;
+  font-size: 11px;
+  line-height: 1.15;
+  font-weight: 500;
+  text-align: left;
+}
+
+.pill-temp {
+  font-weight: 700;
+  font-size: 13px;
+  color: #2e382e;
+}
+
+/* ഗ്രീൻ ഐക്കണുകൾ */
+.pill-icon {
+  color: #1e7e45;
+  font-size: 16px;
+}
+
+/* ചെറിയ ഡോട്ട് ഡിവൈഡർ */
+.pill-divider {
+  color: #cbd5e1;
+  font-size: 8px;
+  margin: 0 2px;
+}
+
+/* വാർഡ് നമ്പർ ബോൾഡ് ഗ്രീൻ */
+.pill-ward-stack {
+  color: #1e7e45;
+  font-weight: 700;
+}
+/* Responsiveness */
+@media (max-width: 992px) {
+  .weather-pill {
+    display: none;
+  }
+}
+
 @media (max-width: 768px) {
   .menu-toggle {
     display: block;
   }
-  
+
   .navbar {
-    padding: 12px 16px;
+    padding: 10px 16px;
   }
-  
-  .search-container {
-    max-width: 200px;
-  }
-  
-  .navbar-right {
-    gap: 10px;
+
+  .nav-widget-pill {
+    font-size: 11px;
+    padding: 3px 8px;
   }
 }
-/* Add this to your App.css or main layout CSS file */
 
-@media (max-width: 768px) {
-  /* Replace '.main-content' with the actual class name of your wrapper div */
-  .main-content {
-    margin-left: 0 !important;
-    padding-left: 0 !important;
-    width: 100% !important;
+@media (max-width: 576px) {
+  .nav-widget-pill {
+    display: none;
   }
 }

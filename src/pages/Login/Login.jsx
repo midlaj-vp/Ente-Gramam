@@ -12,16 +12,14 @@ import {
     ArrowRight,
     MapPin,
     Building2,
+    Loader2,
+    CheckCircle2,
 } from "lucide-react";
+import api from "../../axiosInstance";
 import "./Login.css";
 
-function normalizeWard(value) {
-    if (!value) return "";
-    return String(value).trim().toLowerCase().replace(/\s+/g, " ");
-}
-
 export default function Login({ onLogin, onCreateAccount }) {
-    const [role, setRole] = useState("citizen"); // role values: "citizen", "ward", "panchayat"
+    const [role, setRole] = useState("citizen");
     const [showPassword, setShowPassword] = useState(false);
     const [rememberMe, setRememberMe] = useState(false);
     const [username, setUsername] = useState("");
@@ -29,8 +27,9 @@ export default function Login({ onLogin, onCreateAccount }) {
     const [wardName, setWardName] = useState("");
 
     const [errors, setErrors] = useState({});
+    const [isLoading, setIsLoading] = useState(false);
+    const [isSuccess, setIsSuccess] = useState(false);
 
-    // Forgot Password & OTP states
     const [isForgotMode, setIsForgotMode] = useState(false);
     const [forgotMobile, setForgotMobile] = useState("");
     const [isOtpSent, setIsOtpSent] = useState(false);
@@ -40,7 +39,6 @@ export default function Login({ onLogin, onCreateAccount }) {
     const [forgotError, setForgotError] = useState("");
     const [forgotSuccess, setForgotSuccess] = useState("");
 
-    // Use Descriptive Ward Names exclusively
     const wardData = {
         "ward-1": "North Ward",
         "ward-2": "South Ward",
@@ -52,8 +50,6 @@ export default function Login({ onLogin, onCreateAccount }) {
         "ward-8": "Market Ward",
     };
 
-
-
     const handleRoleChange = (newRole) => {
         setRole(newRole);
         setUsername("");
@@ -61,28 +57,24 @@ export default function Login({ onLogin, onCreateAccount }) {
         setWardName("");
         setErrors({});
         setRememberMe(false);
+        setIsLoading(false);
+        setIsSuccess(false);
         setIsForgotMode(false);
         setIsOtpSent(false);
         setForgotError("");
         setForgotSuccess("");
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         let newErrors = {};
-
-        if (!rememberMe) {
-            newErrors.rememberMe = "Please check 'Remember Me' to proceed.";
-        }
 
         if (role === "ward" && !wardName) {
             newErrors.wardName = "Please select your ward name.";
         }
-
         if (!username) {
             newErrors.username = "Username is required.";
         }
-
         if (!password) {
             newErrors.password = "Password is required.";
         }
@@ -92,55 +84,63 @@ export default function Login({ onLogin, onCreateAccount }) {
             return;
         }
 
-        // Panchayat Login Check
-        if (role === "panchayat") {
-            const defaultPanchayatUser = "admin";
-            const defaultPanchayatPass = "1234";
+        setIsLoading(true);
 
-            if (username === defaultPanchayatUser && password === defaultPanchayatPass) {
-                setErrors({});
-                const panchayatObj = { id: "ADMIN-001", role: "panchayat", username: "admin", name: "Panchayat Office", wardName: "" };
-                onLogin(panchayatObj);
-                return;
-            } else {
-                setErrors({ general: "Invalid Panchayat username or password!" });
-                return;
+        try {
+            // 🟢 Axios Instance (api) വഴി ലോഗിൻ അയക്കുന്നു (HttpOnly Cookies ഓട്ടോമാറ്റിക്കായി സെറ്റ് ആകും)
+            const response = await api.post("login/", { role, username, password, wardName });
+            const data = response.data;
+
+            let userObj = data.user || data;
+            const targetUsername = userObj.username || username;
+
+            // 🟢 Profile API വഴി ഫുൾ ഡാറ്റ എടുക്കുന്നു
+            try {
+                const profileRes = await api.get(`profile/${targetUsername}/`);
+                if (profileRes.data && profileRes.data.success && profileRes.data.user) {
+                    userObj = { ...userObj, ...profileRes.data.user };
+                }
+            } catch (pErr) {
+                console.error("Error fetching profile image on login:", pErr);
             }
-        }
 
-        // Citizen / Ward Member Login Check
-        const usersList = JSON.parse(localStorage.getItem("usersList") || "[]");
+            let rawImg = userObj.profile_image || userObj.profileImage || userObj.avatar || '';
 
-        const foundUser = usersList.find((u) => {
-            if (role === "citizen") {
-                return u.username === username && u.password === password && (u.role === "citizen" || !u.role);
-            } else if (role === "ward") {
-                // Compatible with existing accounts that might have stored wardNumber historically, but checks against normalized names
-                const userWard = normalizeWard(u.wardName || u.wardNumber || "");
-                return u.username === username && u.password === password && u.role === "ward" && userWard === normalizeWard(wardName);
+            if (typeof rawImg === 'string' && (rawImg.startsWith("data:image") || rawImg.length > 500)) {
+                rawImg = "";
             }
-            return false;
-        });
 
-        if (foundUser) {
-            setErrors({});
-            const activeUser = {
-                ...foundUser,
-                id: foundUser.id || foundUser.userId || foundUser.username || `CIT-${Date.now()}`,
-                role: role,
-                wardName: role === "ward" ? wardName : (foundUser.wardName || "")
+            delete userObj.profileImage;
+            delete userObj.profile_image;
+
+            const finalUserObj = {
+                ...userObj,
+                profile_image: rawImg,
+                profileImage: rawImg
             };
-            onLogin(activeUser);
-        } else {
-            if (role === "ward") {
-                setErrors({ general: "Invalid username, password, or the selected ward does not match!" });
-            } else {
-                setErrors({ general: "Invalid username or password for Citizen account!" });
-            }
+
+            // 🟢 User വിവരങ്ങൾ മാത്രം LocalStorage-ൽ സൂക്ഷിക്കുന്നു
+            localStorage.setItem("user", JSON.stringify(finalUserObj));
+            localStorage.setItem("loggedInUser", JSON.stringify(finalUserObj));
+
+            window.dispatchEvent(new Event('user-profile-updated'));
+
+            setErrors({});
+            setIsLoading(false);
+            setIsSuccess(true);
+
+            setTimeout(() => {
+                onLogin(finalUserObj);
+            }, 1200);
+
+        } catch (err) {
+            setIsLoading(false);
+            const errorData = err.response?.data;
+            setErrors({ general: errorData?.error || errorData?.detail || "Cannot connect to server. Ensure Django backend is running." });
         }
     };
 
-    const handleSendOtp = (e) => {
+    const handleSendOtp = async (e) => {
         e.preventDefault();
         setForgotError("");
         setForgotSuccess("");
@@ -150,23 +150,24 @@ export default function Login({ onLogin, onCreateAccount }) {
             return;
         }
 
-        let usersList = JSON.parse(localStorage.getItem("usersList") || "[]");
-        const userExists = usersList.some((u) => u.mobile === forgotMobile && (u.role === role || (!u.role && role === "citizen")));
+        try {
+            const response = await api.post("send-otp/", { mobile: forgotMobile, role });
+            const data = response.data;
 
-        if (!userExists) {
-            setForgotError("No user found with this mobile number for the selected role.");
-            return;
+            if (data.success) {
+                setGeneratedOtp(data.otp);
+                setIsOtpSent(true);
+                setForgotSuccess(data.message);
+            } else {
+                setForgotError(data.error || "Failed to send OTP.");
+            }
+        } catch (err) {
+            const errorData = err.response?.data;
+            setForgotError(errorData?.error || "Server error! Please try again later.");
         }
-
-        const otp = Math.floor(1000 + Math.random() * 9000).toString();
-        setGeneratedOtp(otp);
-        setIsOtpSent(true);
-
-        console.log("Your OTP is:", otp);
-        setForgotSuccess(`OTP sent successfully! (Check Console for OTP: ${otp})`);
     };
 
-    const handleVerifyAndUpdate = (e) => {
+    const handleVerifyAndUpdate = async (e) => {
         e.preventDefault();
         setForgotError("");
         setForgotSuccess("");
@@ -181,38 +182,54 @@ export default function Login({ onLogin, onCreateAccount }) {
             return;
         }
 
-        let usersList = JSON.parse(localStorage.getItem("usersList") || "[]");
-        const userIndex = usersList.findIndex((u) => u.mobile === forgotMobile && (u.role === role || (!u.role && role === "citizen")));
+        try {
+            const response = await api.post("reset-password/", { mobile: forgotMobile, role, newPassword });
+            const data = response.data;
 
-        if (userIndex === -1) {
-            setForgotError("User not found.");
-            return;
+            if (data.success) {
+                setForgotSuccess(`Success! Password updated for "${data.username}".`);
+                setTimeout(() => {
+                    setIsForgotMode(false);
+                    setIsOtpSent(false);
+                    setForgotSuccess("");
+                    setForgotMobile("");
+                    setEnteredOtp("");
+                    setNewPassword("");
+                    setGeneratedOtp("");
+                }, 4000);
+            } else {
+                setForgotError(data.error || "Password update failed.");
+            }
+        } catch (err) {
+            const errorData = err.response?.data;
+            setForgotError(errorData?.error || "Server error! Please try again later.");
         }
-
-        const foundUsername = usersList[userIndex].username;
-
-        usersList[userIndex].password = newPassword;
-        localStorage.setItem("usersList", JSON.stringify(usersList));
-
-        setForgotSuccess(`Success! Your Username is: "${foundUsername}" & Password updated!`);
-
-        setTimeout(() => {
-            setIsForgotMode(false);
-            setIsOtpSent(false);
-            setForgotSuccess("");
-            setForgotMobile("");
-            setEnteredOtp("");
-            setNewPassword("");
-            setGeneratedOtp("");
-        }, 6000);
-    };
-
-    const handleCreateAccount = () => {
-        if (onCreateAccount) onCreateAccount();
     };
 
     return (
         <div className={`login-container ${role === "ward" || role === "panchayat" ? "reverse" : ""}`}>
+
+            {(isLoading || isSuccess) && (
+                <div className="login-overlay">
+                    <div className="overlay-card">
+                        {isLoading && (
+                            <>
+                                <Loader2 className="spinner-large" size={48} />
+                                <h3>Logging in...</h3>
+                                <p>Please wait while we verify your details.</p>
+                            </>
+                        )}
+                        {isSuccess && (
+                            <>
+                                <CheckCircle2 className="checkmark-large" size={56} />
+                                <h3>Login Successful!</h3>
+                                <p>Redirecting to Dashboard...</p>
+                            </>
+                        )}
+                    </div>
+                </div>
+            )}
+
             <div className="login-left">
                 <CornerLeaves />
                 <div className="left-content">
@@ -266,7 +283,7 @@ export default function Login({ onLogin, onCreateAccount }) {
 
                 {!isForgotMode ? (
                     <form onSubmit={handleSubmit}>
-                        {errors.general && <p className="form-error" style={{ marginBottom: "15px" }}>{errors.general}</p>}
+                        {errors.general && <p className="form-error" style={{ color: "red", marginBottom: "15px" }}>{errors.general}</p>}
 
                         {role === "ward" && (
                             <>
@@ -295,7 +312,7 @@ export default function Login({ onLogin, onCreateAccount }) {
                             <User size={16} />
                             <input
                                 type="text"
-                                placeholder={role === "panchayat" ? "Enter panchayat username (e.g. admin)" : "Enter your username"}
+                                placeholder={role === "panchayat" ? "Enter panchayat username (admin)" : "Enter your username"}
                                 value={username}
                                 onChange={(e) => { setUsername(e.target.value); setErrors({ ...errors, username: "" }); }}
                             />
@@ -307,9 +324,9 @@ export default function Login({ onLogin, onCreateAccount }) {
                             <Lock size={16} />
                             <input
                                 type={showPassword ? "text" : "password"}
-                                placeholder={role === "panchayat" ? "Enter panchayat password" : "Enter your password"}
+                                placeholder={role === "panchayat" ? "Enter panchayat password (1234)" : "Enter your password"}
                                 value={password}
-                                onChange={(e) => { setPassword(e.target.value); setErrors({ ...errors, password: "" }); }}
+                                onChange={(e) => setPassword(e.target.value)}
                             />
                             <button type="button" className="toggle-eye" onClick={() => setShowPassword(!showPassword)}>
                                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -322,7 +339,7 @@ export default function Login({ onLogin, onCreateAccount }) {
                                 <input
                                     type="checkbox"
                                     checked={rememberMe}
-                                    onChange={(e) => { setRememberMe(e.target.checked); setErrors({ ...errors, rememberMe: "" }); }}
+                                    onChange={(e) => setRememberMe(e.target.checked)}
                                 />
                                 Remember Me
                             </label>
@@ -330,9 +347,10 @@ export default function Login({ onLogin, onCreateAccount }) {
                                 <button type="button" className="forgot-link" onClick={() => { setIsForgotMode(true); setErrors({}); }}>Forgot Password?</button>
                             )}
                         </div>
-                        {errors.rememberMe && <p className="form-error" style={{ fontSize: "12px", color: "red", marginBottom: "10px" }}>{errors.rememberMe}</p>}
 
-                        <button className="login-btn" type="submit">Login <ArrowRight size={16} /></button>
+                        <button className="login-btn" type="submit" disabled={isLoading || isSuccess}>
+                            Login <ArrowRight size={16} />
+                        </button>
                     </form>
                 ) : (
                     <form onSubmit={!isOtpSent ? handleSendOtp : handleVerifyAndUpdate}>
@@ -395,7 +413,7 @@ export default function Login({ onLogin, onCreateAccount }) {
                 {!isForgotMode && role !== "panchayat" && (
                     <p className="signup-hint">
                         Don't have an account?
-                        <button type="button" className="link" onClick={handleCreateAccount}>Create Account</button>
+                        <button type="button" className="link" onClick={onCreateAccount}>Create Account</button>
                     </p>
                 )}
             </div>

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import api from "../../axiosInstance";
 import "./Signup.css";
 import {
     User,
@@ -22,9 +23,11 @@ export default function CitizenSignUp() {
     const [errors, setErrors] = useState({});
     const [agree, setAgree] = useState(false);
     const [showModal, setShowModal] = useState(false);
-    const navigate = useNavigate();
     const [showSuccessModal, setShowSuccessModal] = useState(false);
-    
+    const [loading, setLoading] = useState(false);
+
+    const navigate = useNavigate();
+
     const [form, setForm] = useState({
         fullName: "",
         mobile: "",
@@ -76,15 +79,16 @@ export default function CitizenSignUp() {
 
         setForm((prev) => ({
             ...prev,
-            wardNumber: selectedKey,       // e.g. "ward-5"
-            wardName: fullNameOfWard       // e.g. "Central Ward"
+            wardNumber: selectedKey,
+            wardName: fullNameOfWard
         }));
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         let newErrors = {};
 
+        // Frontend Validations
         if (!form.fullName) newErrors.fullName = "Full Name is required";
         if (!/^\d{10}$/.test(form.mobile)) newErrors.mobile = "Mobile number must be 10 digits";
 
@@ -103,35 +107,45 @@ export default function CitizenSignUp() {
         if (form.password.length < 6) newErrors.password = "Password must be at least 6 characters";
         if (!agree) newErrors.agree = "You must agree to the terms";
 
-        const existingUsers = JSON.parse(localStorage.getItem("usersList") || "[]");
-        if (existingUsers.find(u => u.username === form.username)) newErrors.username = "Username already exists";
-        if (existingUsers.find(u => u.mobile === form.mobile)) newErrors.mobile = "Mobile number already registered";
-
-        if (role === "ward") {
-            const wardAlreadyTaken = existingUsers.find(
-                u => u.role === "ward" && u.wardNumber === form.wardNumber
-            );
-            if (wardAlreadyTaken) {
-                newErrors.wardNumber = "A Ward Member is already registered for this ward!";
-            }
-        }
-
         if (Object.keys(newErrors).length > 0) {
             setErrors(newErrors);
             return;
         }
 
-        // വാർഡ് പേര് കൃത്യമായി മാച്ച് ആവാൻ wardName അല്ലെങ്കിൽ wardNumber സേവ് ചെയ്യുന്നു
-        const newUser = { 
-            ...form, 
-            role,
-            wardNumber: form.wardName || form.wardNumber // വാർഡിന്റെ പേര് (Central Ward) അല്ലെങ്കിൽ കീ (ward-5) സേവ് ചെയ്യുന്നു
-        };
-        
-        existingUsers.push(newUser);
-        localStorage.setItem("usersList", JSON.stringify(existingUsers));
+        setLoading(true);
+        setErrors({});
 
-        setShowSuccessModal(true);
+        try {
+            // 👈 2. fetch മാറ്റി api.post ഉപയോഗിച്ചു
+            const response = await api.post("signup/", {
+                role: role,
+                fullName: form.fullName,
+                mobile: form.mobile,
+                username: form.username,
+                password: form.password,
+                houseNumber: form.houseNumber || null,
+                houseName: form.houseName || null,
+                wardNumber: form.wardNumber,
+                wardName: form.wardName,
+                gender: form.gender || null,
+                dob: form.dob || null,
+                bloodGroup: form.bloodGroup || null,
+            });
+
+            if (response.status === 200 || response.status === 201) {
+                setShowSuccessModal(true);
+            }
+        } catch (err) {
+            console.error("Signup error:", err);
+            const data = err.response?.data;
+            if (data?.errors) {
+                setErrors(data.errors);
+            } else {
+                setErrors({ server: data?.message || "Registration failed. Please try again." });
+            }
+        } finally {
+            setLoading(false);
+        }
     };
 
     const update = (field) => (e) =>
@@ -140,7 +154,6 @@ export default function CitizenSignUp() {
     return (
         <div className="signup-page">
             <div className="signup-card">
-                {/* Role toggle */}
                 <div className="role-toggle-wrap">
                     <div className="role-box">
                         <div className="role-toggle">
@@ -166,7 +179,6 @@ export default function CitizenSignUp() {
                 </div>
 
                 <div className="signup-grid">
-                    {/* Left panel */}
                     <div className="signup-left">
                         <div className="left-content-wrapper">
                             <div className="brand-row">
@@ -201,7 +213,6 @@ export default function CitizenSignUp() {
                         </div>
                     </div>
 
-                    {/* Right panel: form */}
                     <div className="signup-right">
                         <h1 className="form-title">
                             {role === "citizen" ? "Citizen Sign Up" : "Ward Member Sign Up"}
@@ -317,7 +328,6 @@ export default function CitizenSignUp() {
                                     placeholder="Enter house name"
                                     value={form.houseName}
                                     onChange={update("houseName")}
-                                    required
                                 />
                                 <div className="field-container">
                                     <div className="field">
@@ -412,7 +422,6 @@ export default function CitizenSignUp() {
                                 onChange={update("bloodGroup")}
                                 placeholder="Select blood group"
                                 options={["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"]}
-                                required
                             />
                         </div>
 
@@ -428,7 +437,8 @@ export default function CitizenSignUp() {
                                 <div className="modal-overlay">
                                     <div className="modal-card">
                                         <h2>Terms & Conditions</h2>
-                                        <p>Welcome to Ente Gramam. <br /><br />
+                                        <p>
+                                            Welcome to Ente Gramam. <br /><br />
                                             By creating an account, you agree to: <br />
                                             *Provide accurate and genuine information. <br />
                                             *Use only one account per person. <br />
@@ -437,21 +447,29 @@ export default function CitizenSignUp() {
                                             *Do not submit false information or misuse the system. <br />
                                             *Your personal information will be protected and used only for service-related purposes. <br />
                                             *The Panchayat reserves the right to suspend accounts that violate these terms. <br /><br />
-                                            By clicking "I Agree", you accept these Terms & Conditions.</p>
-                                        <button onClick={() => setShowModal(false)}>Close</button>
+                                            By clicking "I Agree", you accept these Terms & Conditions.
+                                        </p>
+                                        <button type="button" onClick={() => setShowModal(false)}>Close</button>
                                     </div>
                                 </div>
                             )}
                             <span className="link" onClick={() => setShowModal(true)}>I have read and agree to the Terms & Conditions and Privacy Policy.</span>
                         </label>
 
+                        {errors.server && (
+                            <p className="error-msg" style={{ textAlign: "center", marginBottom: "10px", fontSize: "0.9rem" }}>
+                                {errors.server}
+                            </p>
+                        )}
+
                         <button
+                            type="button"
                             className="submit-btn"
                             onClick={handleSubmit}
-                            disabled={!agree}
+                            disabled={!agree || loading}
                         >
                             <UserPlus size={18} />
-                            Create Account
+                            {loading ? "Creating Account..." : "Create Account"}
                         </button>
 
                         <p className="login-hint" style={{ marginTop: '15px', fontSize: '0.8rem', textAlign: 'center' }}>
@@ -463,6 +481,7 @@ export default function CitizenSignUp() {
                     </div>
                 </div>
             </div>
+
             {showSuccessModal && (
                 <div className="success-modal-overlay">
                     <div className="success-modal-card">
@@ -509,13 +528,13 @@ function Field({ label, icon, trailing, ...props }) {
     );
 }
 
-function SelectField({ label, icon, options, placeholder, value, onChange }) {
+function SelectField({ label, icon, options, placeholder, value, onChange, required }) {
     return (
         <div className="field">
             <label>{label}</label>
             <div className="input-wrap">
                 <span className="icon">{icon}</span>
-                <select value={value} onChange={onChange} required>
+                <select value={value} onChange={onChange} required={required}>
                     <option value="" disabled hidden>
                         {placeholder}
                     </option>

@@ -1,35 +1,125 @@
 import React, { useState, useEffect } from "react";
+import api from "../../axiosInstance";
 import "./HarithaKarmaSena.css";
+
+const WARD_NAMES = {
+    "ward-1": "North Ward",
+    "ward-2": "South Ward",
+    "ward-3": "East Ward",
+    "ward-4": "West Ward",
+    "ward-5": "Central Ward",
+    "ward-6": "Hill View",
+    "ward-7": "River Side",
+    "ward-8": "Market Ward"
+};
+
+const formatDateTime = (rawDate) => {
+    if (!rawDate) return "Recently";
+    try {
+        const dateObj = new Date(rawDate);
+        if (isNaN(dateObj.getTime())) return String(rawDate);
+        return dateObj.toLocaleString("en-IN", {
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+            hour: "numeric",
+            minute: "2-digit",
+            hour12: true
+        });
+    } catch (e) {
+        return String(rawDate);
+    }
+};
+
+const formatWardName = (rawWard) => {
+    if (!rawWard) return "Ward 1 (North Ward)";
+    let str = String(rawWard).trim();
+
+    const numMatch = str.match(/\d+/);
+    if (numMatch) {
+        const wardNum = parseInt(numMatch[0], 10);
+        const name = WARD_NAMES[`ward-${wardNum}`];
+        return name ? `Ward ${wardNum} (${name})` : `Ward ${wardNum}`;
+    }
+
+    const foundKey = Object.keys(WARD_NAMES).find(
+        (key) => WARD_NAMES[key].toLowerCase() === str.toLowerCase()
+    );
+    if (foundKey) {
+        const wardNum = foundKey.replace("ward-", "");
+        return `Ward ${wardNum} (${WARD_NAMES[foundKey]})`;
+    }
+
+    return str;
+};
+
+const AVAILABLE_WARDS = Array.from({ length: 20 }, (_, i) => {
+    const wardNum = i + 1;
+    const name = WARD_NAMES[`ward-${wardNum}`];
+    return name ? `Ward ${wardNum} (${name})` : `Ward ${wardNum}`;
+});
+
+const isScheduleForUserWard = (scheduleWards, userWardStr) => {
+    if (!scheduleWards || !userWardStr) return true;
+
+    const schedLower = scheduleWards.toLowerCase();
+    const userLower = userWardStr.toLowerCase();
+
+    if (schedLower.includes("all")) return true;
+
+    if (schedLower.includes(userLower) || userLower.includes(schedLower)) {
+        return true;
+    }
+
+    const userNumMatch = userWardStr.match(/\d+/);
+    if (userNumMatch) {
+        const userNum = parseInt(userNumMatch[0], 10);
+
+        const rangeMatch = schedLower.match(/wards?\s+(\d+)\s+to\s+(\d+)/);
+        if (rangeMatch) {
+            const start = parseInt(rangeMatch[1], 10);
+            const end = parseInt(rangeMatch[2], 10);
+            if (userNum >= start && userNum <= end) return true;
+        }
+
+        const schedNumbers = scheduleWards.match(/\d+/g);
+        if (schedNumbers && schedNumbers.map(Number).includes(userNum)) {
+            return true;
+        }
+    }
+
+    return false;
+};
 
 export default function HarithaKarmaSenaPage() {
     const [userRole, setUserRole] = useState("citizen");
     const [currentUser, setCurrentUser] = useState({});
+    const [currentWard, setCurrentWard] = useState("Ward 1 (North Ward)");
     const [schedules, setSchedules] = useState([]);
     const [pickupRequests, setPickupRequests] = useState([]);
-    const [activeTab, setActiveTab] = useState("schedules"); // 'schedules' or 'requests'
+    const [activeTab, setActiveTab] = useState("schedules");
+    const [loading, setLoading] = useState(true);
 
-    // Modal state for Request Special Pickup
     const [showPickupModal, setShowPickupModal] = useState(false);
-    const [pickupData, setPickupData] = useState({ 
-        name: "", 
-        phone: "", 
-        ward: "", 
-        wasteType: "Plastic Bulk", 
-        note: "" 
+    const [editingPickupId, setEditingPickupId] = useState(null);
+    const [pickupData, setPickupData] = useState({
+        name: "",
+        phone: "",
+        ward: "Ward 1 (North Ward)",
+        wasteType: "Plastic Bulk",
+        note: ""
     });
 
-    // Modal state for Add Schedule
     const [showScheduleModal, setShowScheduleModal] = useState(false);
-    const [wasteType, setWasteType] = useState("");
-    const [scheduleDay, setScheduleDay] = useState("");
-    const [scheduleTime, setScheduleTime] = useState("");
-    const [wardInfo, setWardInfo] = useState("");
+    const [wasteType, setWasteType] = useState("Non-biodegradable Plastic");
+    const [scheduleDay, setScheduleDay] = useState("Every Monday");
+    const [scheduleTime, setScheduleTime] = useState("8:00 AM - 12:00 PM");
+    const [wardInfo, setWardInfo] = useState("All Wards (1 to 20)");
 
-    // Modal state for Updating Impact Stats (Admin / HKS / Panchayat)
     const [showImpactModal, setShowImpactModal] = useState(false);
-    const [impactStats, setImpactStats] = useState({ totalKg: 1250, monthlyGoalPercent: 80 });
-    const [newTotalKg, setNewTotalKg] = useState("1250");
-    const [newGoalPercent, setNewGoalPercent] = useState("80");
+    const [impactStats, setImpactStats] = useState({ totalKg: 0, monthlyGoalPercent: 0 });
+    const [newTotalKg, setNewTotalKg] = useState("");
+    const [newGoalPercent, setNewGoalPercent] = useState("");
 
     useEffect(() => {
         let loggedInUser = {};
@@ -47,442 +137,377 @@ export default function HarithaKarmaSenaPage() {
         const role = (loggedInUser.role || localStorage.getItem("userRole") || "citizen").toLowerCase();
         setUserRole(role);
 
-        const userWard = loggedInUser.ward || localStorage.getItem("userWard") || "Ward 4";
+        const rawWard = loggedInUser.wardName || 
+                        loggedInUser.ward || 
+                        loggedInUser.wardNumber || 
+                        loggedInUser.ward_number || 
+                        localStorage.getItem("userWard") || 
+                        localStorage.getItem("ward") || 
+                        "ward-1";
 
-        // Pre-fill user data (Ward is locked to the logged-in user's ward)
+        const formattedWard = formatWardName(rawWard);
+        setCurrentWard(formattedWard);
+
         setPickupData((prev) => ({
             ...prev,
             name: loggedInUser.name || loggedInUser.username || "",
-            phone: loggedInUser.phone || "",
-            ward: userWard
+            phone: loggedInUser.phone || loggedInUser.mobile || "",
+            ward: formattedWard
         }));
 
-        // Initial Sample Schedules
-        const defaultSchedules = [
-            {
-                id: 1,
-                wasteType: "Plastic Waste",
-                day: "Monday",
-                time: "8:00 AM - 12:00 PM",
-                wards: "Wards 1, 3, 5",
-                icon: "♻️"
-            },
-            {
-                id: 2,
-                wasteType: "Organic Waste",
-                day: "Wednesday",
-                time: "7:00 AM - 10:00 AM",
-                wards: "All Wards",
-                icon: "🌿"
-            }
-        ];
-
-        // Load Saved Schedules
-        const savedSchedules = localStorage.getItem("ente_gramam_hks_schedules");
-        if (savedSchedules) {
-            try {
-                setSchedules(JSON.parse(savedSchedules));
-            } catch (err) {
-                setSchedules(defaultSchedules);
-            }
-        } else {
-            setSchedules(defaultSchedules);
-            localStorage.setItem("ente_gramam_hks_schedules", JSON.stringify(defaultSchedules));
-        }
-
-        // Load Saved Special Pickup Requests
-        const savedPickups = localStorage.getItem("ente_gramam_hks_pickups");
-        if (savedPickups) {
-            try {
-                setPickupRequests(JSON.parse(savedPickups));
-            } catch (e) {}
-        }
-
-        // Load Saved Impact Stats
-        const savedImpact = localStorage.getItem("ente_gramam_hks_impact");
-        if (savedImpact) {
-            try {
-                const parsed = JSON.parse(savedImpact);
-                setImpactStats(parsed);
-                setNewTotalKg(parsed.totalKg.toString());
-                setNewGoalPercent(parsed.monthlyGoalPercent.toString());
-            } catch (e) {}
-        }
+        fetchInitialData();
     }, []);
 
-    // Helper check for Admin / Panchayat / HKS Privilege
+    const fetchInitialData = async () => {
+        setLoading(true);
+        try {
+            const [schedRes, pickupRes, impactRes] = await Promise.all([
+                api.get("schedules/"),
+                api.get("pickups/"),
+                api.get("impact/")
+            ]);
+
+            setSchedules(schedRes.data);
+            setPickupRequests(pickupRes.data);
+            if (impactRes.data) {
+                setImpactStats(impactRes.data);
+                setNewTotalKg(impactRes.data.totalKg?.toString() || "0");
+                setNewGoalPercent(impactRes.data.monthlyGoalPercent?.toString() || "0");
+            }
+        } catch (error) {
+            console.error("Error fetching data from server:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const isPrivileged = userRole.includes("panchayat") || userRole.includes("admin") || userRole.includes("hks") || userRole.includes("ward");
 
-    // Handle Schedule Actions
-    const handleAddSchedule = (e) => {
+    const filteredSchedules = schedules.filter((item) => {
+        if (isPrivileged) return true;
+        return isScheduleForUserWard(item.wards, currentWard);
+    });
+
+    const handleAddSchedule = async (e) => {
         e.preventDefault();
         if (!wasteType || !scheduleDay) return;
 
-        const newSch = {
-            id: Date.now(),
+        const payload = {
             wasteType,
             day: scheduleDay,
             time: scheduleTime || "8:00 AM - 12:00 PM",
-            wards: wardInfo || "All Wards",
+            wards: wardInfo || "All Wards (1 to 20)",
             icon: "🚛"
         };
 
-        const updated = [newSch, ...schedules];
-        setSchedules(updated);
-        localStorage.setItem("ente_gramam_hks_schedules", JSON.stringify(updated));
-
-        setShowScheduleModal(false);
-        setWasteType("");
-        setScheduleDay("");
-        setScheduleTime("");
-        setWardInfo("");
-        alert("Collection schedule added successfully!");
+        try {
+            const res = await api.post("schedules/", payload);
+            setSchedules([res.data, ...schedules]);
+            setShowScheduleModal(false);
+            alert("Schedule added successfully!");
+        } catch (err) {
+            alert("Failed to save schedule.");
+        }
     };
 
-    const handleDeleteSchedule = (id) => {
+    const handleDeleteSchedule = async (id) => {
         if (!window.confirm("Are you sure you want to delete this schedule?")) return;
-        const updated = schedules.filter((s) => s.id !== id);
-        setSchedules(updated);
-        localStorage.setItem("ente_gramam_hks_schedules", JSON.stringify(updated));
+        try {
+            await api.delete(`schedules/${id}/`);
+            setSchedules(schedules.filter((s) => s.id !== id));
+        } catch (err) {
+            alert("Failed to delete schedule.");
+        }
     };
 
-    // Handle Pickup Request Submission (By Citizen)
-    const handlePickupSubmit = (e) => {
-        e.preventDefault();
-        const activeWard = currentUser.ward || localStorage.getItem("userWard") || "Ward 4";
+    const closePickupModal = () => {
+        setShowPickupModal(false);
+        setEditingPickupId(null);
+        setPickupData({
+            name: currentUser.name || currentUser.username || "",
+            phone: currentUser.phone || currentUser.mobile || "",
+            ward: currentWard,
+            wasteType: "Plastic Bulk",
+            note: ""
+        });
+    };
 
-        const newRequest = {
-            id: Date.now(),
+    const handleEditPickupClick = (req) => {
+        setEditingPickupId(req.id);
+        setPickupData({
+            name: req.name || "",
+            phone: req.phone || "",
+            ward: formatWardName(req.ward),
+            wasteType: req.wasteType || "Plastic Bulk",
+            note: req.note || ""
+        });
+        setShowPickupModal(true);
+    };
+
+    const handlePickupSubmit = async (e) => {
+        e.preventDefault();
+        const payload = {
             ...pickupData,
-            ward: activeWard, // Locked strictly to logged-in user's ward
-            status: "Pending",
-            date: new Date().toLocaleDateString(),
+            status: editingPickupId ? (pickupRequests.find(r => r.id === editingPickupId)?.status || "Pending") : "Pending",
             requestedBy: currentUser.username || pickupData.name
         };
 
-        const updated = [newRequest, ...pickupRequests];
-        setPickupRequests(updated);
-        localStorage.setItem("ente_gramam_hks_pickups", JSON.stringify(updated));
-
-        alert("Special pickup request submitted successfully! Haritha Karma Sena will review it shortly.");
-        setShowPickupModal(false);
-        setPickupData({ 
-            name: currentUser.name || "", 
-            phone: currentUser.phone || "", 
-            ward: activeWard, 
-            wasteType: "Plastic Bulk", 
-            note: "" 
-        });
-    };
-
-    // Toggle Pickup Request Status (By HKS / Admin)
-    const handleTogglePickupStatus = (id) => {
-        const updated = pickupRequests.map((req) => {
-            if (req.id === id) {
-                return { ...req, status: req.status === "Pending" ? "Completed" : "Pending" };
+        try {
+            if (editingPickupId) {
+                const res = await api.put(`pickups/${editingPickupId}/`, payload);
+                setPickupRequests(prev => prev.map(req => req.id === editingPickupId ? res.data : req));
+                alert("Pickup request updated successfully!");
+            } else {
+                const res = await api.post("pickups/", payload);
+                setPickupRequests([res.data, ...pickupRequests]);
+                alert("Special pickup request submitted successfully!");
             }
-            return req;
-        });
-        setPickupRequests(updated);
-        localStorage.setItem("ente_gramam_hks_pickups", JSON.stringify(updated));
+            closePickupModal();
+        } catch (err) {
+            alert("Failed to save pickup request.");
+        }
     };
 
-    // Delete Pickup Request (By HKS / Admin)
-    const handleDeletePickupRequest = (id) => {
-        if (!window.confirm("Delete this request?")) return;
-        const updated = pickupRequests.filter((req) => req.id !== id);
-        setPickupRequests(updated);
-        localStorage.setItem("ente_gramam_hks_pickups", JSON.stringify(updated));
+    const handleTogglePickupStatus = async (id, currentStatus) => {
+        let collectedKg = 0;
+        if (currentStatus === "Pending") {
+            const input = window.prompt("എത്ര Kg മാലിന്യം ശേഖരിച്ചു? (Enter weight in Kg):");
+            if (input === null) return;
+            collectedKg = parseFloat(input);
+            if (isNaN(collectedKg) || collectedKg <= 0) {
+                alert("ദയവായി സാധുവായ ഒരു Kg എന്റർ ചെയ്യുക.");
+                return;
+            }
+        }
+
+        const nextStatus = currentStatus === "Pending" ? "Completed" : "Pending";
+
+        try {
+            await api.patch(`pickups/${id}/status/`, {
+                status: nextStatus,
+                collected_kg: nextStatus === "Completed" ? collectedKg : 0
+            });
+
+            setPickupRequests(prev => prev.map((req) =>
+                req.id === id ? { ...req, status: nextStatus, collected_kg: nextStatus === "Completed" ? collectedKg : 0 } : req
+            ));
+
+            const impactRes = await api.get("impact/");
+            if (impactRes.data) setImpactStats(impactRes.data);
+        } catch (err) {
+            alert("Failed to update status.");
+        }
     };
 
-    // Handle Impact Stats Update (By HKS / Admin)
-    const handleUpdateImpact = (e) => {
+    const handleDeletePickupRequest = async (id) => {
+        if (!window.confirm("ഈ റിക്വസ്റ്റ് ഡിലീറ്റ് ചെയ്യണമെന്നുറപ്പാണോ?")) return;
+        try {
+            await api.delete(`pickups/${id}/`);
+            setPickupRequests(prev => prev.filter((req) => req.id !== id));
+            const impactRes = await api.get("impact/");
+            if (impactRes.data) setImpactStats(impactRes.data);
+        } catch (err) {
+            alert("Failed to delete request.");
+        }
+    };
+
+    const handleUpdateImpact = async (e) => {
         e.preventDefault();
-        const updatedStats = {
-            totalKg: Number(newTotalKg) || 0,
-            monthlyGoalPercent: Number(newGoalPercent) || 0
-        };
-        setImpactStats(updatedStats);
-        localStorage.setItem("ente_gramam_hks_impact", JSON.stringify(updatedStats));
-        setShowImpactModal(false);
-        alert("Green Karma Impact updated successfully!");
+        try {
+            const res = await api.post("impact/", {
+                totalKg: Number(newTotalKg) || 0,
+                monthlyGoalPercent: Number(newGoalPercent) || 0
+            });
+            setImpactStats(res.data);
+            setShowImpactModal(false);
+            alert("Impact stats updated!");
+        } catch (err) {
+            alert("Failed to update impact stats.");
+        }
     };
 
-    // Filter requests for Citizens (Show only their own) vs Admins (Show all)
     const userPickupRequests = isPrivileged
         ? pickupRequests
-        : pickupRequests.filter((req) => req.requestedBy === currentUser.username || req.name === currentUser.name);
+        : pickupRequests.filter((req) => req.requestedBy === currentUser.username || req.name === (currentUser.name || currentUser.username));
 
     return (
         <div className="hks-wrapper">
-            {/* Top Header */}
             <div className="hks-top-header">
                 <div>
                     <h2>Haritha Karma Sena</h2>
-                    <p>Waste Management Hub & Green Initiatives ({userRole.toUpperCase()} PANEL)</p>
+                    <p>Waste Management Hub ({userRole.toUpperCase()} PANEL)</p>
                 </div>
-                <button className="btn-request-pickup" onClick={() => setShowPickupModal(true)}>
+                <button className="btn-request-pickup" onClick={() => { setEditingPickupId(null); setShowPickupModal(true); }}>
                     🚚 Request Special Pickup
                 </button>
             </div>
 
-            {/* Navigation Tabs for Switching Views */}
-            <div className="hks-tabs-bar" style={{ display: "flex", gap: "10px", marginBottom: "20px" }}>
-                <button
-                    className={`tab-btn ${activeTab === "schedules" ? "active" : ""}`}
-                    onClick={() => setActiveTab("schedules")}
-                    style={{
-                        padding: "8px 16px",
-                        borderRadius: "20px",
-                        border: "1px solid #cbd5e1",
-                        background: activeTab === "schedules" ? "#16a34a" : "#f8fafc",
-                        color: activeTab === "schedules" ? "#fff" : "#334155",
-                        cursor: "pointer",
-                        fontWeight: "600"
-                    }}
-                >
+            <div className="hks-tabs-bar">
+                <button className={`tab-btn ${activeTab === "schedules" ? "active" : ""}`} onClick={() => setActiveTab("schedules")}>
                     🗓️ Collection Schedules
                 </button>
-                <button
-                    className={`tab-btn ${activeTab === "requests" ? "active" : ""}`}
-                    onClick={() => setActiveTab("requests")}
-                    style={{
-                        padding: "8px 16px",
-                        borderRadius: "20px",
-                        border: "1px solid #cbd5e1",
-                        background: activeTab === "requests" ? "#16a34a" : "#f8fafc",
-                        color: activeTab === "requests" ? "#fff" : "#334155",
-                        cursor: "pointer",
-                        fontWeight: "600"
-                    }}
-                >
-                    📋 Special Pickup Requests {userPickupRequests.length > 0 && `(${userPickupRequests.length})`}
+                <button className={`tab-btn ${activeTab === "requests" ? "active" : ""}`} onClick={() => setActiveTab("requests")}>
+                    📋 Pickup Requests ({userPickupRequests.length})
                 </button>
             </div>
 
-            {/* View 1: Collection Schedules & Impact Dashboard */}
-            {activeTab === "schedules" && (
-                <div className="hks-main-grid">
-                    {/* Left Section: Collection Schedule */}
-                    <div className="hks-schedule-section">
-                        <div className="schedule-header-row">
-                            <h3>Collection Schedule</h3>
-                            {isPrivileged && (
-                                <button className="btn-add-sched" onClick={() => setShowScheduleModal(true)}>
-                                    + Add Schedule
-                                </button>
-                            )}
-                        </div>
-
-                        <div className="schedule-cards-list">
-                            {schedules.map((item) => (
-                                <div key={item.id} className="schedule-card-item" style={{ position: "relative" }}>
-                                    <div className="sched-left">
-                                        <div className="sched-icon-box">{item.icon}</div>
-                                        <div>
-                                            <h4>{item.wasteType}</h4>
-                                            <span className="sched-wards">{item.wards}</span>
-                                        </div>
-                                    </div>
-                                    <div className="sched-right" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                                        <div>
-                                            <span className="sched-day">{item.day}</span>
-                                            <span className="sched-time">{item.time}</span>
-                                        </div>
-                                        {isPrivileged && (
-                                            <button
-                                                onClick={() => handleDeleteSchedule(item.id)}
-                                                style={{
-                                                    background: "#fee2e2",
-                                                    color: "#dc2626",
-                                                    border: "none",
-                                                    borderRadius: "4px",
-                                                    padding: "4px 8px",
-                                                    cursor: "pointer",
-                                                    fontSize: "12px"
-                                                }}
-                                                title="Delete Schedule"
-                                            >
-                                                🗑️
-                                            </button>
-                                        )}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Right Section: Green Karma Impact Box */}
-                    <div className="hks-impact-card">
-                        <div>
-                            <div className="impact-header-flex">
-                                <h3>Green Karma Impact</h3>
-                                {isPrivileged && (
-                                    <button className="btn-edit-impact" onClick={() => setShowImpactModal(true)} title="Update Impact Stats">
-                                        ⚙️ Edit
-                                    </button>
-                                )}
-                            </div>
-                            <div className="impact-subtitle">Total Plastic Collected (This Month)</div>
-                            <div className="impact-kg-value">
-                                {impactStats.totalKg.toLocaleString()} <span className="kg-unit">kg</span>
-                            </div>
-                        </div>
-
-                        <div>
-                            <div className="impact-goal-row">
-                                <span>Monthly Goal</span>
-                                <span>{impactStats.monthlyGoalPercent}%</span>
-                            </div>
-                            <div className="impact-progress-bar">
-                                <div className="impact-progress-fill" style={{ width: `${Math.min(impactStats.monthlyGoalPercent, 100)}%` }}></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* View 2: Special Pickup Requests Management / Tracking */}
-            {activeTab === "requests" && (
-                <div className="pickup-requests-section" style={{ background: "#fff", padding: "20px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
-                    <h3>{isPrivileged ? "Manage Special Pickup Requests" : "My Special Pickup Requests"}</h3>
-                    <p style={{ fontSize: "14px", color: "#64748b", marginBottom: "16px" }}>
-                        {isPrivileged
-                            ? "Review requests submitted by residents and update completion status."
-                            : "Track status of special waste collection requests you submitted."}
-                    </p>
-
-                    {userPickupRequests.length === 0 ? (
-                        <div style={{ textAlign: "center", padding: "30px", color: "#94a3b8" }}>No pickup requests found.</div>
-                    ) : (
-                        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                            {userPickupRequests.map((req) => (
-                                <div
-                                    key={req.id}
-                                    style={{
-                                        border: "1px solid #cbd5e1",
-                                        borderRadius: "8px",
-                                        padding: "16px",
-                                        display: "flex",
-                                        justifyContent: "space-between",
-                                        alignItems: "center",
-                                        background: req.status === "Completed" ? "#f0fdf4" : "#ffffff"
-                                    }}
-                                >
-                                    <div>
-                                        <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "4px" }}>
-                                            <strong style={{ fontSize: "16px" }}>{req.wasteType}</strong>
-                                            <span
-                                                style={{
-                                                    fontSize: "11px",
-                                                    padding: "2px 8px",
-                                                    borderRadius: "12px",
-                                                    fontWeight: "bold",
-                                                    background: req.status === "Completed" ? "#dcfce7" : "#fef3c7",
-                                                    color: req.status === "Completed" ? "#166534" : "#92400e"
-                                                }}
-                                            >
-                                                {req.status}
-                                            </span>
-                                        </div>
-                                        <div style={{ fontSize: "13px", color: "#475569" }}>
-                                            👤 <strong>{req.name}</strong> ({req.phone}) | 📍 <strong>{req.ward}</strong>
-                                        </div>
-                                        {req.note && <div style={{ fontSize: "13px", color: "#64748b", marginTop: "4px" }}>📝 "{req.note}"</div>}
-                                        <div style={{ fontSize: "11px", color: "#94a3b8", marginTop: "4px" }}>📅 Requested on: {req.date}</div>
-                                    </div>
-
+            {loading ? (
+                <div className="hks-loading">Loading data from server...</div>
+            ) : (
+                <>
+                    {activeTab === "schedules" && (
+                        <div className="hks-main-grid">
+                            <div className="hks-schedule-section">
+                                <div className="schedule-header-row">
+                                    <h3>Collection Schedule {!isPrivileged && `(${currentWard})`}</h3>
                                     {isPrivileged && (
-                                        <div style={{ display: "flex", gap: "8px" }}>
-                                            <button
-                                                onClick={() => handleTogglePickupStatus(req.id)}
-                                                style={{
-                                                    background: req.status === "Pending" ? "#16a34a" : "#ca8a04",
-                                                    color: "#fff",
-                                                    border: "none",
-                                                    padding: "6px 12px",
-                                                    borderRadius: "6px",
-                                                    cursor: "pointer",
-                                                    fontSize: "12px"
-                                                }}
-                                            >
-                                                {req.status === "Pending" ? "Mark Completed" : "Mark Pending"}
-                                            </button>
-                                            <button
-                                                onClick={() => handleDeletePickupRequest(req.id)}
-                                                style={{
-                                                    background: "#fee2e2",
-                                                    color: "#dc2626",
-                                                    border: "1px solid #fca5a5",
-                                                    padding: "6px 10px",
-                                                    borderRadius: "6px",
-                                                    cursor: "pointer",
-                                                    fontSize: "12px"
-                                                }}
-                                            >
-                                                Delete
-                                            </button>
-                                        </div>
+                                        <button className="btn-add-sched" onClick={() => setShowScheduleModal(true)}>
+                                            + Add Schedule
+                                        </button>
                                     )}
                                 </div>
-                            ))}
+
+                                <div className="schedule-cards-list">
+                                    {filteredSchedules.length === 0 ? (
+                                        <div className="hks-empty-state">No collection schedules found for {currentWard}.</div>
+                                    ) : (
+                                        filteredSchedules.map((item) => (
+                                            <div key={item.id} className="schedule-card-item">
+                                                <div className="sched-left">
+                                                    <div className="sched-icon-box">{item.icon || "♻️"}</div>
+                                                    <div>
+                                                        <h4>{item.wasteType}</h4>
+                                                        <span className="sched-wards">{formatWardName(item.wards)}</span>
+                                                    </div>
+                                                </div>
+                                                <div className="sched-right">
+                                                    <div>
+                                                        <span className="sched-day">{item.day}</span>
+                                                        <span className="sched-time">{item.time}</span>
+                                                    </div>
+                                                    {isPrivileged && (
+                                                        <button className="btn-icon-delete" onClick={() => handleDeleteSchedule(item.id)} title="Delete">
+                                                            🗑️
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="hks-impact-card">
+                                <div>
+                                    <div className="impact-header-flex">
+                                        <h3>Green Karma Impact</h3>
+                                        {isPrivileged && (
+                                            <button className="btn-edit-impact" onClick={() => setShowImpactModal(true)}>⚙️ Edit</button>
+                                        )}
+                                    </div>
+                                    <div className="impact-subtitle">Total Plastic Collected (This Month)</div>
+                                    <div className="impact-kg-wrapper">
+                                        <div className="impact-kg-value">
+                                            {impactStats.totalKg.toLocaleString()} <span className="kg-unit">kg</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="impact-footer">
+                                    <div className="impact-goal-row">
+                                        <span>Monthly Goal</span>
+                                        <span>{impactStats.monthlyGoalPercent}%</span>
+                                    </div>
+                                    <div className="impact-progress-bar">
+                                        <div className="impact-progress-fill" style={{ width: `${Math.min(impactStats.monthlyGoalPercent, 100)}%` }}></div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     )}
-                </div>
+
+                    {activeTab === "requests" && (
+                        <div className="pickup-requests-section">
+                            <h3>{isPrivileged ? "Manage Pickup Requests" : "My Requests"}</h3>
+
+                            {userPickupRequests.length === 0 ? (
+                                <div className="hks-empty-state">No pickup requests found.</div>
+                            ) : (
+                                <div className="pickup-cards-list">
+                                    {userPickupRequests.map((req) => {
+                                        const reqDate = req.created_at || req.time || req.date_time || req.date || req.createdAt;
+
+                                        return (
+                                            <div key={req.id} className="pickup-card-item">
+                                                <div className="pickup-card-info">
+                                                    <div className="pickup-title-row">
+                                                        <strong>{req.wasteType}</strong>
+                                                        <span className={`status-badge ${req.status === "Completed" ? "completed" : "pending"}`}>
+                                                            {req.status}
+                                                        </span>
+                                                    </div>
+                                                    <div className="pickup-details">
+                                                        👤 <strong>{req.name}</strong> ({req.phone}) | 📍 <strong>{formatWardName(req.ward)}</strong>
+                                                    </div>
+                                                    
+                                                    <div className="pickup-datetime" style={{ fontSize: "12px", color: "#6b7280", marginTop: "4px" }}>
+                                                        🕒 <strong>Submitted:</strong> {formatDateTime(reqDate)}
+                                                    </div>
+
+                                                    {req.note && <div className="pickup-note">📝 "{req.note}"</div>}
+                                                </div>
+
+                                                <div className="hks-action-group">
+                                                    {isPrivileged && (
+                                                        <button
+                                                            className={`btn-action btn-status ${req.status === "Pending" ? "is-pending" : "is-completed"}`}
+                                                            onClick={() => handleTogglePickupStatus(req.id, req.status)}
+                                                        >
+                                                            {req.status === "Pending" ? "✓ Mark Completed" : "↺ Mark Pending"}
+                                                        </button>
+                                                    )}
+                                                    <button
+                                                        className="btn-action btn-edit"
+                                                        style={{ background: "#f59e0b", color: "#ffffff", border: "none" }}
+                                                        onClick={() => handleEditPickupClick(req)}
+                                                    >
+                                                        ✏️ Edit
+                                                    </button>
+                                                    <button
+                                                        className="btn-action btn-delete"
+                                                        onClick={() => handleDeletePickupRequest(req.id)}
+                                                    >
+                                                        🗑️ Delete
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </>
             )}
 
-            {/* Green Tips Section */}
-            <div className="green-tips-section" style={{ marginTop: "24px" }}>
-                <h3>🌱 Green Tips</h3>
-                <div className="tips-grid">
-                    <div className="tip-card">
-                        <div className="tip-icon">💧</div>
-                        <h4>Wash Plastics</h4>
-                        <p>Rinse plastic containers before disposal to prevent contamination and odor.</p>
-                    </div>
-                    <div className="tip-card">
-                        <div className="tip-icon">📦</div>
-                        <h4>Crush Cartons</h4>
-                        <p>Flatten cardboard boxes to save space in bins and collection vehicles.</p>
-                    </div>
-                    <div className="tip-card">
-                        <div className="tip-icon">🔋</div>
-                        <h4>E-Waste Separation</h4>
-                        <p>Keep batteries and electronics separate for specialized collection days.</p>
-                    </div>
-                </div>
-            </div>
-
-            {/* Request Special Pickup Modal */}
             {showPickupModal && (
                 <div className="modal-overlay">
                     <div className="modal-box">
-                        <button className="close-btn" onClick={() => setShowPickupModal(false)}>&times;</button>
-                        <h2>Request Special Pickup</h2>
-                        <p>Fill out details for bulky waste or special clearance.</p>
+                        <button className="close-btn" onClick={closePickupModal}>&times;</button>
+                        <h2>{editingPickupId ? "Edit Pickup Request" : "Request Special Pickup"}</h2>
                         <form onSubmit={handlePickupSubmit}>
                             <div className="form-group">
                                 <label>Full Name</label>
-                                <input type="text" required value={pickupData.name} onChange={(e) => setPickupData({ ...pickupData, name: e.target.value })} placeholder="Your Name" />
+                                <input type="text" required value={pickupData.name} onChange={(e) => setPickupData({ ...pickupData, name: e.target.value })} />
                             </div>
                             <div className="form-group">
                                 <label>Phone Number</label>
-                                <input type="text" required value={pickupData.phone} onChange={(e) => setPickupData({ ...pickupData, phone: e.target.value })} placeholder="10-digit mobile number" />
+                                <input type="text" required value={pickupData.phone} onChange={(e) => setPickupData({ ...pickupData, phone: e.target.value })} />
                             </div>
-
-                            {/* WARD FIELD IS LOCKED TO LOGGED-IN USER'S WARD */}
                             <div className="form-group">
-                                <label>Ward Number (Assigned Location)</label>
-                                <input 
-                                    type="text" 
-                                    value={pickupData.ward || currentUser.ward || "Ward 4"} 
-                                    readOnly 
-                                    disabled
-                                    style={{ background: "#f1f5f9", cursor: "not-allowed", color: "#64748b", fontWeight: "bold" }} 
-                                />
-                                <small style={{ color: "#94a3b8", fontSize: "11px" }}>🔒 Locked to your logged-in ward</small>
+                                <label>Ward Number</label>
+                                <input type="text" value={pickupData.ward} readOnly className="read-only-input" />
                             </div>
-
                             <div className="form-group">
                                 <label>Waste Type</label>
                                 <select value={pickupData.wasteType} onChange={(e) => setPickupData({ ...pickupData, wasteType: e.target.value })}>
@@ -493,65 +518,100 @@ export default function HarithaKarmaSenaPage() {
                             </div>
                             <div className="form-group">
                                 <label>Additional Notes</label>
-                                <textarea rows="2" value={pickupData.note} onChange={(e) => setPickupData({ ...pickupData, note: e.target.value })} placeholder="Details about quantity..."></textarea>
+                                <textarea rows="2" value={pickupData.note} onChange={(e) => setPickupData({ ...pickupData, note: e.target.value })}></textarea>
                             </div>
                             <div className="modal-actions">
-                                <button type="button" className="cancel-btn" onClick={() => setShowPickupModal(false)}>Cancel</button>
-                                <button type="submit" className="submit-btn">Submit Request</button>
+                                <button type="button" className="cancel-btn" onClick={closePickupModal}>Cancel</button>
+                                <button type="submit" className="submit-btn">{editingPickupId ? "Update Request" : "Submit Request"}</button>
                             </div>
                         </form>
                     </div>
                 </div>
             )}
 
-            {/* Add Schedule Modal (Admin / HKS Only) */}
-            {showScheduleModal && isPrivileged && (
+            {showScheduleModal && (
                 <div className="modal-overlay">
                     <div className="modal-box">
                         <button className="close-btn" onClick={() => setShowScheduleModal(false)}>&times;</button>
                         <h2>Add Collection Schedule</h2>
-                        <p>Set new waste collection timings for wards.</p>
                         <form onSubmit={handleAddSchedule}>
                             <div className="form-group">
                                 <label>Waste Type</label>
-                                <input type="text" required value={wasteType} onChange={(e) => setWasteType(e.target.value)} placeholder="e.g. Glass & E-Waste" />
+                                <select value={wasteType} onChange={(e) => setWasteType(e.target.value)} required>
+                                    <option value="Non-biodegradable Plastic">Non-biodegradable Plastic</option>
+                                    <option value="Clean & Dry Plastic">Clean & Dry Plastic</option>
+                                    <option value="E-Waste / Electronics">E-Waste / Electronics</option>
+                                    <option value="Glass Bottles & Items">Glass Bottles & Items</option>
+                                    <option value="Paper & Cardboard">Paper & Cardboard</option>
+                                    <option value="Old Clothes & Footwear">Old Clothes & Footwear</option>
+                                    <option value="Hazardous & Medicine Waste">Hazardous & Medicine Waste</option>
+                                    <option value="All Dry Waste">All Dry Waste</option>
+                                </select>
                             </div>
+
                             <div className="form-group">
-                                <label>Day</label>
-                                <input type="text" required value={scheduleDay} onChange={(e) => setScheduleDay(e.target.value)} placeholder="e.g. Friday" />
+                                <label>Collection Day</label>
+                                <select value={scheduleDay} onChange={(e) => setScheduleDay(e.target.value)} required>
+                                    <option value="Every Monday">Every Monday</option>
+                                    <option value="Every Tuesday">Every Tuesday</option>
+                                    <option value="Every Wednesday">Every Wednesday</option>
+                                    <option value="Every Thursday">Every Thursday</option>
+                                    <option value="Every Friday">Every Friday</option>
+                                    <option value="Every Saturday">Every Saturday</option>
+                                    <option value="1st & 3rd Monday of Month">1st & 3rd Monday of Month</option>
+                                    <option value="1st of Every Month">1st of Every Month</option>
+                                    <option value="15th of Every Month">15th of Every Month</option>
+                                    <option value="Last Sunday of Month">Last Sunday of Month</option>
+                                </select>
                             </div>
+
                             <div className="form-group">
                                 <label>Time Slot</label>
-                                <input type="text" value={scheduleTime} onChange={(e) => setScheduleTime(e.target.value)} placeholder="e.g. 9:00 AM - 1:00 PM" />
+                                <select value={scheduleTime} onChange={(e) => setScheduleTime(e.target.value)}>
+                                    <option value="8:00 AM - 12:00 PM">8:00 AM - 12:00 PM</option>
+                                    <option value="9:00 AM - 1:00 PM">9:00 AM - 1:00 PM</option>
+                                    <option value="10:00 AM - 2:00 PM">10:00 AM - 2:00 PM</option>
+                                    <option value="2:00 PM - 5:00 PM">2:00 PM - 5:00 PM</option>
+                                    <option value="All Day (8:00 AM - 5:00 PM)">All Day (8:00 AM - 5:00 PM)</option>
+                                </select>
                             </div>
+
                             <div className="form-group">
-                                <label>Wards Applicable</label>
-                                <input type="text" value={wardInfo} onChange={(e) => setWardInfo(e.target.value)} placeholder="e.g. Wards 2, 4, 6" />
+                                <label>Wards Covered</label>
+                                <select value={wardInfo} onChange={(e) => setWardInfo(e.target.value)}>
+                                    <option value="All Wards (1 to 20)">All Wards (1 to 20)</option>
+                                    <option value="Wards 1 to 5">Wards 1 to 5</option>
+                                    <option value="Wards 6 to 10">Wards 6 to 10</option>
+                                    <option value="Wards 11 to 15">Wards 11 to 15</option>
+                                    <option value="Wards 16 to 20">Wards 16 to 20</option>
+                                    {AVAILABLE_WARDS.map((w) => (
+                                        <option key={w} value={w}>{w}</option>
+                                    ))}
+                                </select>
                             </div>
+
                             <div className="modal-actions">
                                 <button type="button" className="cancel-btn" onClick={() => setShowScheduleModal(false)}>Cancel</button>
-                                <button type="submit" className="submit-btn">Save Schedule</button>
+                                <button type="submit" className="submit-btn">Add Schedule</button>
                             </div>
                         </form>
                     </div>
                 </div>
             )}
 
-            {/* Update Impact Modal (Admin / HKS Only) */}
-            {showImpactModal && isPrivileged && (
+            {showImpactModal && (
                 <div className="modal-overlay">
                     <div className="modal-box">
                         <button className="close-btn" onClick={() => setShowImpactModal(false)}>&times;</button>
-                        <h2>Update Green Karma Impact</h2>
-                        <p>Modify total plastic collection and monthly goal progress.</p>
+                        <h2>Update Impact Statistics</h2>
                         <form onSubmit={handleUpdateImpact}>
                             <div className="form-group">
-                                <label>Total Plastic Collected (in kg)</label>
-                                <input type="number" required value={newTotalKg} onChange={(e) => setNewTotalKg(e.target.value)} placeholder="e.g. 1500" />
+                                <label>Total Plastic Collected (kg)</label>
+                                <input type="number" required value={newTotalKg} onChange={(e) => setNewTotalKg(e.target.value)} />
                             </div>
                             <div className="form-group">
                                 <label>Monthly Goal Percentage (%)</label>
-                                <input type="number" min="0" max="100" required value={newGoalPercent} onChange={(e) => setNewGoalPercent(e.target.value)} placeholder="e.g. 85" />
+                                <input type="number" min="0" max="100" required value={newGoalPercent} onChange={(e) => setNewGoalPercent(e.target.value)} />
                             </div>
                             <div className="modal-actions">
                                 <button type="button" className="cancel-btn" onClick={() => setShowImpactModal(false)}>Cancel</button>

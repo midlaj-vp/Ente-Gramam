@@ -1,82 +1,94 @@
-/* ==========================================
-   Global Dark Mode Styles for All Pages
-   ========================================== */
-
-body.dark-theme {
-    background-color: #0f172a !important;
-    color: #f8fafc !important;
+/* Deactivated Account Overlay & Popup Modal */
+.dp-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999;
+  animation: fadeIn 0.2s ease-out;
 }
 
-body.dark-theme .app-container,
-body.dark-theme main {
-    background-color: #0f172a !important;
-    color: #f8fafc !important;
+.dp-card {
+  background: #ffffff;
+  width: 90%;
+  max-width: 420px;
+  padding: 32px 24px;
+  border-radius: 16px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: scaleUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Sidebar Dark Theme */
-body.dark-theme .sidebar {
-    background-color: #1e293b !important;
-    border-right: 1px solid #334155 !important;
+.dp-icon-wrapper {
+  width: 64px;
+  height: 64px;
+  background-color: #fef2f2;
+  border: 1px solid #fee2e2;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
 }
 
-body.dark-theme .sidebar a,
-body.dark-theme .sidebar span,
-body.dark-theme .sidebar-menu-item {
-    color: #cbd5e1 !important;
+.dp-title {
+  margin: 0 0 10px 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #0f172a;
 }
 
-body.dark-theme .sidebar a:hover,
-body.dark-theme .sidebar-menu-item.active {
-    background-color: #334155 !important;
-    color: #ffffff !important;
+.dp-message {
+  margin: 0 0 24px 0;
+  font-size: 14px;
+  color: #64748b;
+  line-height: 1.5;
 }
 
-/* Navbar Dark Theme */
-body.dark-theme .navbar,
-body.dark-theme header {
-    background-color: #1e293b !important;
-    border-bottom: 1px solid #334155 !important;
-    color: #f8fafc !important;
+.dp-btn {
+  width: 100%;
+  padding: 12px 20px;
+  background-color: #dc2626;
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s ease;
 }
 
-/* Cards & Containers across all pages */
-body.dark-theme .card,
-body.dark-theme .dashboard-card,
-body.dark-theme .section-block,
-body.dark-theme .general-form-card {
-    background-color: #1e293b !important;
-    border-color: #334155 !important;
-    color: #f8fafc !important;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+.dp-btn:hover {
+  background-color: #b91c1c;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
 }
 
-/* Headings and Texts */
-body.dark-theme h1,
-body.dark-theme h2,
-body.dark-theme h3,
-body.dark-theme h4,
-body.dark-theme h5,
-body.dark-theme h6,
-body.dark-theme strong {
-    color: #f8fafc !important;
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
-body.dark-theme p,
-body.dark-theme span,
-body.dark-theme label {
-    color: #94a3b8 !important;
-}
-
-/* Inputs and Select fields */
-body.dark-theme input,
-body.dark-theme select,
-body.dark-theme textarea {
-    background-color: #0f172a !important;
-    color: #f8fafc !important;
-    border-color: #475569 !important;
-}
-
-body.dark-theme input::placeholder,
-body.dark-theme textarea::placeholder {
-    color: #64748b !important;
+@keyframes scaleUp {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }

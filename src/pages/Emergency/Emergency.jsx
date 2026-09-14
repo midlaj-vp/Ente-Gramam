@@ -1,11 +1,159 @@
 import React, { useState, useEffect } from "react";
+import api from "../../axiosInstance";
 import "./Emergency.css";
 
-// ------------------------------------------------------------------
-// Reference data (kept at the top of this file, same as how
-// VillageProjectsPage keeps defaultProjects inline instead of in a
-// separate file).
-// ------------------------------------------------------------------
+const formatDate = (dateString) => {
+    if (!dateString) return "Just now";
+    try {
+        const d = new Date(dateString);
+        if (isNaN(d.getTime())) return dateString;
+        return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) + ", " +
+            d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    } catch (e) {
+        return dateString;
+    }
+};
+
+const WARD_MAP = {
+    "ward-1": "North Ward",
+    "ward-2": "South Ward",
+    "ward-3": "East Ward",
+    "ward-4": "West Ward",
+    "ward-5": "Central Ward",
+    "ward-6": "Hill View",
+    "ward-7": "River Side",
+    "ward-8": "Market Ward"
+};
+
+const getWardName = (wardKey) => {
+    if (!wardKey) return "North Ward";
+    const keyLower = String(wardKey).trim().toLowerCase();
+    if (keyLower === "all wards") return "All Wards";
+
+    if (WARD_MAP[keyLower]) return WARD_MAP[keyLower];
+
+    for (const [k, v] of Object.entries(WARD_MAP)) {
+        if (keyLower.includes(k)) return v;
+    }
+
+    return wardKey;
+};
+
+const getFreshUserPhone = () => {
+    let u = {};
+    try {
+        u = JSON.parse(
+            localStorage.getItem("loggedInUser") || localStorage.getItem("user") || "{}"
+        );
+    } catch (e) {
+        u = {};
+    }
+
+    let phone =
+        u.mobile ||
+        u.mobileNumber ||
+        u.mobile_number ||
+        u.phone ||
+        u.phoneNumber ||
+        u.phone_number ||
+        localStorage.getItem("mobile") ||
+        localStorage.getItem("mobileNumber") ||
+        localStorage.getItem("userPhone") ||
+        "";
+
+    if (phone && phone !== "NULL" && phone !== "null" && String(phone).trim() !== "") {
+        phone = String(phone).trim();
+        if (!phone.startsWith("+")) {
+            phone = `+91 ${phone}`;
+        }
+        return phone;
+    }
+
+    return "+91 90000 00000";
+};
+
+const calculateDistanceAndMins = (lat1, lon1, lat2, lon2) => {
+    if (!lat1 || !lon1 || !lat2 || !lon2) return "Near You";
+    const R = 6371;
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLon = ((lon2 - lon1) * Math.PI) / 180;
+    const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos((lat1 * Math.PI) / 180) *
+        Math.cos((lat2 * Math.PI) / 180) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const dist = R * c;
+    const mins = Math.max(1, Math.round((dist / 30) * 60));
+    return `${dist.toFixed(1)}km • ${mins} mins`;
+};
+
+const fetchLiveNearbyServices = async (userLat, userLon) => {
+    const query = `[out:json][timeout:10];(node["amenity"="hospital"](around:10000,${userLat},${userLon});node["amenity"="police"](around:10000,${userLat},${userLon});node["amenity"="fire_station"](around:10000,${userLat},${userLon}););out body 10;`;
+    
+    const endpoints = [
+        "https://overpass-api.de/api/interpreter",
+        "https://lz4.overpass-api.de/api/interpreter",
+        "https://z.overpass-api.de/api/interpreter"
+    ];
+
+    for (const endpoint of endpoints) {
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 6000);
+
+            const res = await fetch(`${endpoint}?data=${encodeURIComponent(query)}`, {
+                signal: controller.signal
+            });
+            clearTimeout(timeoutId);
+
+            if (!res.ok) continue;
+
+            const data = await res.json();
+            if (!data.elements || data.elements.length === 0) return [];
+
+            return data.elements.map((el, index) => {
+                let type = "Medical";
+                if (el.tags.amenity === "police") type = "Police";
+                if (el.tags.amenity === "fire_station") type = "Fire";
+
+                const realPhone = el.tags.phone || el.tags["contact:phone"] || el.tags["phone:mobile"] || "N/A";
+
+                return {
+                    id: `live-${el.id || index}`,
+                    name: el.tags.name || `Local ${type} Center`,
+                    type: type,
+                    distance: calculateDistanceAndMins(userLat, userLon, el.lat, el.lon),
+                    desc: el.tags["addr:street"] || el.tags["addr:suburb"] || "Live Map Location",
+                    phone: realPhone,
+                    lat: el.lat,
+                    lon: el.lon,
+                    isLive: true
+                };
+            });
+        } catch (e) {
+        }
+    }
+    return [];
+};
+
+const isValidCoords = (coords) => {
+    return (
+        coords &&
+        typeof coords === "string" &&
+        /\d/.test(coords) &&
+        !coords.includes("Fetching") &&
+        !coords.includes("Updating") &&
+        !coords.includes("denied")
+    );
+};
+
+const getGoogleMapsUrl = (coords) => {
+    if (!isValidCoords(coords)) return "#";
+    const cleanCoords = coords.replace(/°/g, '').replace(/N/g, 'N').replace(/E/g, 'E').trim();
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(cleanCoords)}`;
+};
+
 const emergencyTypes = [
     { name: "Medical", icon: "⚕️", cls: "med-icon" },
     { name: "Police", icon: "🛡️", cls: "police-icon" },
@@ -18,26 +166,6 @@ const emergencyTypes = [
 
 const typeMeta = Object.fromEntries(emergencyTypes.map((t) => [t.name, t]));
 
-const mockResources = [
-    { id: 1, name: "Taluk Hospital", type: "Medical", distance: "0.8km • 5 mins", desc: "Emergency Ward open 24/7", phone: "108" },
-    { id: 2, name: "Punalur Police Station", type: "Police", distance: "1.2km • 8 mins", desc: "Regional HQ Station", phone: "112" },
-    { id: 3, name: "Fire Rescue Station", type: "Fire", distance: "2.5km • 12 mins", desc: "Heavy Duty Engines Available", phone: "101" },
-    { id: 4, name: "KSEB Section Office", type: "Electrical", distance: "1.0km • 6 mins", desc: "Quick Response Team", phone: "1912" },
-];
-
-const DEFAULT_HISTORY = [
-    { id: 1, title: "Medical Emergency", time: "Today, 10:30 AM", type: "Medical", icon: "⚕️", iconClass: "med-icon", status: "RESOLVED" },
-    { id: 2, title: "Short Circuit", time: "Oct 14, 08:15 PM", type: "Electrical", icon: "⚡", iconClass: "elec-icon", status: "RESOLVED" },
-    { id: 3, title: "Minor Accident", time: "Oct 10, 11:45 AM", type: "Accident", icon: "🚗", iconClass: "acc-icon", status: "RESOLVED" },
-];
-
-const DEFAULT_BROADCASTS = [
-    { id: 1, title: "River water levels increasing in Ward 14", level: "High", ward: "Ward 14" },
-];
-
-// step 1 Activated -> 2 Location Shared -> 3 Panchayat Notified (messages go
-// out here) -> 4 Team Assigned (Ward Member action) -> 5 Help On The Way
-// (Ward Member / Panchayath action)
 const TIMELINE_STEPS = [
     { step: 1, label: "SOS Activated", waitingText: "Broadcasting the alert…" },
     { step: 2, label: "Location Shared", waitingText: "Sharing GPS location…" },
@@ -47,28 +175,26 @@ const TIMELINE_STEPS = [
 ];
 
 function nowTime() {
-    return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const d = new Date();
+    return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) + ", " +
+        d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
-// Turns real GPS coordinates into a human-readable place name (e.g. a
-// locality/suburb + city), so the "Current Location" card shows where the
-// citizen actually is instead of just their registered ward. Uses the free
-// OpenStreetMap Nominatim reverse-geocoding API. Returns null on any
-// failure so the caller can fall back to the registered ward text.
 async function reverseGeocode(lat, lon) {
     try {
         const res = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=14&addressdetails=1`,
-            { headers: { Accept: "application/json" } }
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`,
+            { headers: { "Accept-Language": "en" } }
         );
         if (!res.ok) return null;
         const data = await res.json();
         const addr = data.address || {};
-        const locality =
-            addr.suburb || addr.village || addr.town || addr.city_district || addr.neighbourhood || addr.hamlet;
-        const city = addr.city || addr.town || addr.county;
-        if (locality && city && locality !== city) return `${locality}, ${city}`;
-        return locality || city || data.display_name || null;
+
+        const place = addr.suburb || addr.neighbourhood || addr.village || addr.residential || addr.road || addr.town;
+        const city = addr.town || addr.city || addr.county || addr.state_district;
+
+        if (place && city && place !== city) return `${place}, ${city}`;
+        return place || city || data.display_name || null;
     } catch (e) {
         return null;
     }
@@ -85,89 +211,39 @@ function getTimelineClass(emergency, stepNum) {
     return "inactive";
 }
 
-// ------------------------------------------------------------------
-// Shared "backend" — persists the active SOS request, ward inbox,
-// panchayath inbox, history, and broadcasts to localStorage (same
-// idea as your "ente_gramam_projects" key), and lets any open tab
-// of this page pick up changes instantly via subscribe(). Swap the
-// bodies of these functions for real API calls once you have a
-// backend; every call site below keeps working unchanged.
-// ------------------------------------------------------------------
-const STORAGE_KEYS = {
-    EMERGENCY: "ente_gramam_active_emergency",
-    WARD_INBOX: "ente_gramam_ward_inbox",
-    PANCHAYATH_INBOX: "ente_gramam_panchayath_inbox",
-    HISTORY: "ente_gramam_emergency_history",
-    BROADCASTS: "ente_gramam_broadcasts",
-};
-const SYNC_EVENT = "emergency-store-sync";
-
-function readJSON(key, fallback) {
-    try {
-        const raw = localStorage.getItem(key);
-        return raw ? JSON.parse(raw) : fallback;
-    } catch (e) {
-        return fallback;
-    }
-}
-
-function writeJSON(key, value) {
-    localStorage.setItem(key, JSON.stringify(value));
-    window.dispatchEvent(new Event(SYNC_EVENT));
-}
-
-const emergencyStore = {
-    getEmergency: () => readJSON(STORAGE_KEYS.EMERGENCY, null),
-    setEmergency: (value) => writeJSON(STORAGE_KEYS.EMERGENCY, value),
-    clearEmergency: () => writeJSON(STORAGE_KEYS.EMERGENCY, null),
-
-    getWardInbox: () => readJSON(STORAGE_KEYS.WARD_INBOX, []),
-    addWardMessage: (msg) => writeJSON(STORAGE_KEYS.WARD_INBOX, [msg, ...readJSON(STORAGE_KEYS.WARD_INBOX, [])]),
-
-    getPanchayathInbox: () => readJSON(STORAGE_KEYS.PANCHAYATH_INBOX, []),
-    addPanchayathNotification: (note) =>
-        writeJSON(STORAGE_KEYS.PANCHAYATH_INBOX, [note, ...readJSON(STORAGE_KEYS.PANCHAYATH_INBOX, [])]),
-
-    getHistory: () => readJSON(STORAGE_KEYS.HISTORY, DEFAULT_HISTORY),
-    addHistory: (entry) => writeJSON(STORAGE_KEYS.HISTORY, [entry, ...readJSON(STORAGE_KEYS.HISTORY, DEFAULT_HISTORY)]),
-
-    getBroadcasts: () => readJSON(STORAGE_KEYS.BROADCASTS, DEFAULT_BROADCASTS),
-    setBroadcasts: (value) => writeJSON(STORAGE_KEYS.BROADCASTS, value),
-
-    // Fires the callback whenever ANY tab/window changes the shared data.
-    subscribe(callback) {
-        const handler = () => callback();
-        window.addEventListener("storage", handler);
-        window.addEventListener(SYNC_EVENT, handler);
-        return () => {
-            window.removeEventListener("storage", handler);
-            window.removeEventListener(SYNC_EVENT, handler);
-        };
-    },
-};
-
-// One single page, same as VillageProjectsPage: role comes from the real
-// logged-in user (localStorage), and the page conditionally renders the
-// Citizen / Ward Member / Panchayath sections. No demo switcher, no
-// separate route per role — the correct properties for each role only
-// ever render inside that role's own block below.
 export default function EmergencyPage() {
     const [userRole, setUserRole] = useState("citizen");
     const [currentUser, setCurrentUser] = useState({ name: "", phone: "" });
-    const [currentWard, setCurrentWard] = useState("Ward 07");
+    const [currentWard, setCurrentWard] = useState("ward-1");
     const [panchayathName, setPanchayathName] = useState("Pookkottumpadam Grama Panchayath");
 
-    const [emergency, setEmergencyState] = useState(null);
+    const [emergency, setEmergency] = useState(null);
     const [wardInbox, setWardInbox] = useState([]);
     const [panchayathInbox, setPanchayathInbox] = useState([]);
     const [history, setHistory] = useState([]);
-    const [broadcasts, setBroadcastsState] = useState([]);
+    const [broadcasts, setBroadcasts] = useState([]);
+
+    const [dbResources, setDbResources] = useState([]);
+    const [liveMapResources, setLiveMapResources] = useState([]);
+
     const [newAlertTitle, setNewAlertTitle] = useState("");
     const [toast, setToast] = useState(null);
 
+    const [resForm, setResForm] = useState({
+        id: null,
+        name: "",
+        type: "Medical",
+        distance: "",
+        desc: "",
+        phone: ""
+    });
+
     const [selectedType, setSelectedType] = useState("Medical");
-    const [location, setLocation] = useState({ coords: "Fetching...", name: "Fetching...", time: "Just now" });
-    const [filteredResources, setFilteredResources] = useState(mockResources);
+    const [location, setLocation] = useState({ coords: "Fetching...", name: "Fetching location...", lat: null, lon: null, time: "Just now" });
+    const [filteredResources, setFilteredResources] = useState([]);
+
+    const [locationGranted, setLocationGranted] = useState(false);
+    const [showLocationPrompt, setShowLocationPrompt] = useState(false);
 
     useEffect(() => {
         let loggedInUser = {};
@@ -182,37 +258,42 @@ export default function EmergencyPage() {
         const role = (loggedInUser.role || localStorage.getItem("userRole") || "citizen").toLowerCase();
         setUserRole(role);
 
-        const userWard = loggedInUser.ward || localStorage.getItem("userWard") || "Ward 07";
-        setCurrentWard(userWard);
+        const rawWard =
+            loggedInUser.wardName ||
+            loggedInUser.ward ||
+            loggedInUser.wardNumber ||
+            loggedInUser.ward_number ||
+            localStorage.getItem("userWard") ||
+            "ward-1";
+
+        setCurrentWard(rawWard);
+        const freshPhone = getFreshUserPhone();
 
         setCurrentUser({
-            name: loggedInUser.name || "User",
-            phone: loggedInUser.phone || "+91 90000 00000",
+            name: loggedInUser.name || loggedInUser.fullName || loggedInUser.username || "User",
+            phone: freshPhone,
         });
 
         setPanchayathName(loggedInUser.panchayathName || "Pookkottumpadam Grama Panchayath");
-        setLocation((l) => ({ ...l, name: `${userWard}, Pookkottumpadam` }));
 
-        const refresh = () => {
-            setEmergencyState(emergencyStore.getEmergency());
-            setWardInbox(emergencyStore.getWardInbox());
-            setPanchayathInbox(emergencyStore.getPanchayathInbox());
-            setHistory(emergencyStore.getHistory());
-            setBroadcastsState(emergencyStore.getBroadcasts());
-        };
-        refresh();
-        const unsubscribe = emergencyStore.subscribe(refresh);
+        try {
+            const stored = JSON.parse(localStorage.getItem("emergency_broadcasts") || "[]");
+            if (Array.isArray(stored) && stored.length > 0) setBroadcasts(stored);
+        } catch (e) { }
+
+        fetchAllBackendData();
+        const interval = setInterval(fetchAllBackendData, 8000);
 
         handleRefreshLocation();
-        return unsubscribe;
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+        return () => clearInterval(interval);
     }, []);
 
     useEffect(() => {
+        const combined = [...dbResources, ...liveMapResources];
         setFilteredResources(
-            selectedType === "Other" ? mockResources : mockResources.filter((r) => r.type === selectedType)
+            selectedType === "Other" ? combined : combined.filter((r) => r.type === selectedType)
         );
-    }, [selectedType]);
+    }, [selectedType, dbResources, liveMapResources]);
 
     useEffect(() => {
         if (!toast) return;
@@ -220,50 +301,110 @@ export default function EmergencyPage() {
         return () => clearTimeout(t);
     }, [toast]);
 
+    const fetchBroadcastsOnly = async () => {
+        try {
+            const res = await api.get("emergencies/broadcasts/");
+            const list = Array.isArray(res.data) ? res.data : (res.data.results || []);
+            setBroadcasts(list);
+            localStorage.setItem("emergency_broadcasts", JSON.stringify(list));
+        } catch (error) {
+            console.error("Error fetching broadcasts:", error);
+        }
+    };
+
+    const fetchResources = async () => {
+        try {
+            const res = await api.get("emergencies/resources/");
+            const list = Array.isArray(res.data) ? res.data : (res.data.results || []);
+            setDbResources(list);
+        } catch (error) {
+            console.error("Error fetching resources:", error);
+        }
+    };
+
+    const fetchAllBackendData = async () => {
+        fetchBroadcastsOnly();
+        fetchResources();
+
+        try {
+            const res = await api.get("emergencies/active/");
+            const activeData = res.data;
+            if (activeData && activeData.id) {
+                setEmergency({
+                    id: activeData.id,
+                    type: activeData.type,
+                    icon: activeData.icon,
+                    iconClass: activeData.icon_class,
+                    ward: activeData.ward,
+                    locationName: activeData.location_name,
+                    coords: activeData.coords,
+                    citizen: { name: activeData.citizen_name, phone: activeData.citizen_phone },
+                    step: activeData.step,
+                    createdAt: activeData.created_at
+                });
+            } else {
+                setEmergency(null);
+            }
+        } catch (error) {
+            setEmergency(null);
+        }
+
+        try {
+            const wardRes = await api.get("emergencies/ward-inbox/");
+            setWardInbox(Array.isArray(wardRes.data) ? wardRes.data : []);
+        } catch (e) {}
+
+        try {
+            const panchayatRes = await api.get("emergencies/panchayat-inbox/");
+            setPanchayathInbox(Array.isArray(panchayatRes.data) ? panchayatRes.data : []);
+        } catch (e) {}
+
+        try {
+            const histRes = await api.get("emergencies/history/");
+            setHistory(Array.isArray(histRes.data) ? histRes.data : []);
+        } catch (e) {}
+    };
+
     const isCitizen = userRole.includes("citizen");
     const isWardMember = userRole.includes("ward");
     const isPanchayath = userRole.includes("panchayat") || userRole.includes("admin");
 
-    // Ward Members should only see SOS messages addressed to their own
-    // ward — never every ward's traffic. Panchayath keeps seeing everything
-    // via panchayathInbox (unfiltered), since it's the panchayat-wide view.
-    const myWardInbox = wardInbox.filter((m) => m.ward === currentWard);
+    const myWardInbox = wardInbox.filter((m) =>
+        getWardName(m.ward).toLowerCase() === getWardName(currentWard).toLowerCase() ||
+        m.ward?.toLowerCase() === currentWard?.toLowerCase()
+    );
 
-    // Same scoping for the timeline/active-request view: a Ward Member
-    // should only ever see the active emergency (and its timeline) when
-    // it belongs to their own ward — never another ward's SOS.
-    const myWardEmergency = emergency && emergency.ward === currentWard ? emergency : null;
-
-    // Whether we currently have a real GPS fix. SOS activation checks this
-    // before the timeline is allowed to move past "SOS Activated".
-    const [locationGranted, setLocationGranted] = useState(false);
-    // Shown when SOS was activated but location isn't available yet.
-    const [showLocationPrompt, setShowLocationPrompt] = useState(false);
+    const myWardEmergency = emergency && (
+        getWardName(emergency.ward).toLowerCase() === getWardName(currentWard).toLowerCase() ||
+        emergency.ward?.toLowerCase() === currentWard?.toLowerCase()
+    ) ? emergency : null;
 
     const handleRefreshLocation = (onSuccess, onError) => {
-        setLocation((l) => ({ ...l, coords: "Updating...", name: "Fetching..." }));
+        setLocation((l) => ({ ...l, coords: "Updating...", name: "Locating..." }));
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
                 async (position) => {
                     const lat = position.coords.latitude;
                     const lon = position.coords.longitude;
                     const coords = `${lat.toFixed(4)}° N, ${lon.toFixed(4)}° E`;
-                    setLocation((l) => ({ ...l, coords, time: "Updated Just now" }));
-                    setLocationGranted(true);
 
-                    // Reverse-geocode the ACTUAL coordinates so the label
-                    // matches where the citizen really is right now, instead
-                    // of always showing their registered ward.
+                    setLocationGranted(true);
                     const realName = await reverseGeocode(lat, lon);
-                    setLocation((l) => ({ ...l, name: realName || `${currentWard}, Pookkottumpadam` }));
+                    const displayLocName = realName || `${getWardName(currentWard)}, Location Found`;
+
+                    setLocation({ coords, name: displayLocName, lat, lon, time: nowTime() });
+
+                    const mapResults = await fetchLiveNearbyServices(lat, lon);
+                    setLiveMapResources(mapResults);
 
                     if (onSuccess) onSuccess(coords);
                 },
                 () => {
-                    setLocation((l) => ({ ...l, coords: "Location access denied", time: "", name: `${currentWard}, Pookkottumpadam` }));
+                    setLocation((l) => ({ ...l, coords: "Location access denied", time: "", name: `${getWardName(currentWard)}, Pookkottumpadam` }));
                     setLocationGranted(false);
                     if (onError) onError();
-                }
+                },
+                { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
             );
         } else {
             setLocationGranted(false);
@@ -271,167 +412,247 @@ export default function EmergencyPage() {
         }
     };
 
-    // Step 3 (Panchayat Notified) — fires the Ward + Panchayath
-    // notifications for a given emergency snapshot. Only ever called
-    // once the location has actually been shared (step >= 2).
-    const notifyWardAndPanchayath = (current) => {
-        emergencyStore.setEmergency({ ...current, step: 3 });
-
-        // Panchayath sees every ward's SOS activity — unfiltered.
-        emergencyStore.addPanchayathNotification({
-            id: Date.now(),
-            emergencyId: current.id,
-            text: `New ${current.type} SOS from ${current.ward} — ${current.locationName}`,
-            time: "Just now",
-        });
-
-        // Ward message is tagged with the citizen's own ward so it only
-        // ever reaches that ward's Ward Member (see myWardInbox filter).
-        emergencyStore.addWardMessage({
-            id: Date.now(),
-            emergencyId: current.id,
-            ward: current.ward,
-            to: `Ward Member — ${current.ward}`,
-            text: `🚨 SOS ALERT: ${current.type} emergency reported near ${current.locationName} (${current.ward}). Open the app to assign a response team.`,
-            time: "Just now",
-        });
-    };
-
-    // ----- CITIZEN ACTION -----
-    // The timeline can only move to step 2 ("Location Shared") once we
-    // actually have a GPS fix. If location isn't available, the SOS stays
-    // parked on step 1 and a popup asks the citizen to turn location on —
-    // the Ward/Panchayat are only notified (step 3) after location is
-    // confirmed shared.
-    const handleSOSActivate = () => {
-        if (emergency) return; // one active SOS at a time, see emergencyStore.js note
+    const handleSOSActivate = async () => {
+        if (emergency) return;
         const meta = typeMeta[selectedType] || typeMeta.Other;
-        const newEmergency = {
-            id: Date.now(),
+        const activePhone = getFreshUserPhone();
+
+        const safeLocationName =
+            (!location.name || location.name.includes("Fetching") || location.name.includes("Locating"))
+                ? `${getWardName(currentWard)}, Pookkottumpadam`
+                : location.name;
+
+        const mapUrl = isValidCoords(location.coords)
+            ? getGoogleMapsUrl(location.coords)
+            : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(safeLocationName)}`;
+
+        const payload = {
             type: selectedType,
             icon: meta.icon,
             iconClass: meta.cls,
             ward: currentWard,
-            locationName: location.name,
+            locationName: safeLocationName,
             coords: location.coords,
-            citizen: currentUser,
-            step: 1,
-            createdAt: nowTime(),
+            citizen: {
+                name: currentUser.name || "User",
+                phone: activePhone
+            },
         };
-        emergencyStore.setEmergency(newEmergency);
 
-        if (locationGranted) {
-            // Location already available — proceed automatically.
-            setTimeout(() => {
-                const current = emergencyStore.getEmergency();
-                if (current && current.id === newEmergency.id) {
-                    emergencyStore.setEmergency({ ...current, step: 2, locationName: location.name, coords: location.coords });
-                }
-            }, 1000);
+        try {
+            const res = await api.post("emergencies/active/", payload);
+            const newEm = res.data;
 
-            setTimeout(() => {
-                const current = emergencyStore.getEmergency();
-                if (current && current.id === newEmergency.id) {
-                    notifyWardAndPanchayath(current);
+            if (newEm) {
+                api.post("send-sos/", {
+                    ward_number: currentWard,
+                    ward_name: getWardName(currentWard),
+                    user_name: currentUser.name || "Citizen",
+                    user_phone: activePhone,
+                    location_link: mapUrl
+                }).catch(() => {});
+
+                setToast("🚨 SOS Activated! Emergency SMS sent to Ward Member.");
+                await fetchAllBackendData();
+
+                if (locationGranted) {
+                    setTimeout(async () => {
+                        try {
+                            await api.patch(`emergencies/${newEm.id}/step/`, { step: 2 });
+                            fetchAllBackendData();
+                        } catch (e) {}
+                    }, 1000);
+
+                    setTimeout(async () => {
+                        try {
+                            await api.patch(`emergencies/${newEm.id}/step/`, { step: 3 });
+                            fetchAllBackendData();
+                        } catch (e) {}
+                    }, 2200);
+                } else {
+                    setShowLocationPrompt(true);
                 }
-            }, 2200);
-        } else {
-            // No location fix yet — hold at step 1 and ask the citizen to
-            // turn location on before we move forward.
-            setShowLocationPrompt(true);
+            }
+        } catch (error) {
+            setToast("Failed to activate SOS. Server error.");
         }
     };
 
-    // ----- CITIZEN ACTION: enable location for an already-active SOS -----
-    // Called from the "Location not shared" popup's "Turn On Location"
-    // button. On success this moves the timeline to step 2 and then
-    // notifies the Ward/Panchayath, same as the automatic flow above.
+    const proceedSOSWithLocation = async (coords, locName) => {
+        if (!emergency) return;
+        setShowLocationPrompt(false);
+
+        try {
+            await api.patch(`emergencies/${emergency.id}/step/`, { step: 2, coords: coords, locationName: locName });
+            fetchAllBackendData();
+
+            setTimeout(async () => {
+                try {
+                    await api.patch(`emergencies/${emergency.id}/step/`, { step: 3 });
+                    fetchAllBackendData();
+                } catch (e) {}
+            }, 1200);
+        } catch (e) {}
+    };
+
     const handleEnableLocationForSOS = () => {
         handleRefreshLocation(
-            (coords) => {
-                const current = emergencyStore.getEmergency();
-                if (!current) return;
-                const updated = { ...current, step: 2, coords, locationName: location.name };
-                emergencyStore.setEmergency(updated);
-                setShowLocationPrompt(false);
-
-                setTimeout(() => {
-                    const c2 = emergencyStore.getEmergency();
-                    if (c2 && c2.id === current.id) {
-                        notifyWardAndPanchayath(c2);
-                    }
-                }, 1200);
+            async (coords) => {
+                proceedSOSWithLocation(coords, location.name);
             },
-            () => {
-                setToast("Location still not accessible. Please enable location permissions in your browser/phone settings.");
+            async () => {
+                const fallbackLoc = `${getWardName(currentWard)}, Pookkottumpadam`;
+                setToast("GPS unavailable. Using registered ward location.");
+                proceedSOSWithLocation("Registered Address", fallbackLoc);
             }
         );
     };
 
-    // ----- CITIZEN ACTION: cancel a mistakenly activated SOS -----
-    // Only allowed before a team has been assigned (step < 4). Once a
-    // team is assigned, cancellation should go through the Ward Member /
-    // Panchayath resolve flow instead, since a real team may already be
-    // moving.
-    const handleCancelSOS = () => {
+    const handleCancelSOS = async () => {
         if (!emergency) return;
         if (!window.confirm("Cancel this SOS request? This cannot be undone.")) return;
-        emergencyStore.clearEmergency();
+
+        const cancelId = emergency.id;
+        setEmergency(null);
         setShowLocationPrompt(false);
-        setToast("SOS cancelled.");
+
+        try {
+            await api.post(`emergencies/${cancelId}/cancel/`);
+            setToast("SOS cancelled.");
+            await fetchAllBackendData();
+        } catch (e) {}
     };
 
-    // ----- WARD MEMBER ACTIONS -----
-    const handleAssignTeam = () => {
+    const handleAssignTeam = async () => {
         if (!emergency) return;
-        emergencyStore.setEmergency({ ...emergency, step: 4, assignedAt: nowTime(), assignedBy: currentUser.name });
-        setToast("Team assigned. The citizen has been notified.");
+        try {
+            await api.patch(`emergencies/${emergency.id}/step/`, { step: 4, assignedBy: currentUser.name, assignedAt: nowTime() });
+            setToast("Team assigned. The citizen has been notified.");
+            fetchAllBackendData();
+        } catch (e) {}
     };
 
-    // ----- WARD MEMBER / PANCHAYATH ACTION -----
-    const handleDispatch = () => {
+    const handleDispatch = async () => {
         if (!emergency) return;
-        emergencyStore.setEmergency({ ...emergency, step: 5, dispatchedAt: nowTime() });
-        setToast("Team dispatched. Help is on the way.");
+        try {
+            await api.patch(`emergencies/${emergency.id}/step/`, { step: 5, dispatchedAt: nowTime() });
+            setToast("Team dispatched. Help is on the way.");
+            fetchAllBackendData();
+        } catch (e) {}
     };
 
-    const handleResolve = () => {
+    const handleResolve = async () => {
         if (!emergency) return;
-        emergencyStore.addHistory({
-            id: emergency.id,
-            title: `${emergency.type} Emergency`,
-            time: `Today, ${emergency.createdAt}`,
-            type: emergency.type,
-            icon: emergency.icon,
-            iconClass: emergency.iconClass,
-            status: "RESOLVED",
-        });
-        emergencyStore.clearEmergency();
+        const resolveId = emergency.id;
+        setEmergency(null);
         setShowLocationPrompt(false);
-        setToast("Request marked resolved.");
+
+        try {
+            await api.post(`emergencies/${resolveId}/resolve/`);
+            setToast("Request marked resolved.");
+            await fetchAllBackendData();
+        } catch (e) {}
     };
 
-    // ----- PANCHAYATH BROADCAST ACTIONS -----
-    const handleAddBroadcast = (e) => {
+    const handleAddBroadcast = async (e) => {
         e.preventDefault();
-        if (!newAlertTitle.trim()) return;
-        emergencyStore.setBroadcasts([
-            { id: Date.now(), title: newAlertTitle, level: "Urgent", ward: "Panchayat Wide" },
-            ...broadcasts,
-        ]);
-        setNewAlertTitle("");
-    };
+        if (!newAlertTitle.trim()) {
+            setToast("Please enter a warning message.");
+            return;
+        }
 
-    const handleDeleteBroadcast = (id) => {
-        if (window.confirm("Delete this emergency alert?")) {
-            emergencyStore.setBroadcasts(broadcasts.filter((item) => item.id !== id));
+        try {
+            const res = await api.post("emergencies/broadcasts/", {
+                title: newAlertTitle,
+                level: "Urgent",
+                ward: "Panchayat Wide"
+            });
+            const newBroadcast = res.data;
+            if (newBroadcast) {
+                setBroadcasts((prev) => [newBroadcast, ...prev]);
+                setNewAlertTitle("");
+                setToast("Warning alert broadcasted successfully!");
+                fetchBroadcastsOnly();
+            }
+        } catch (error) {
+            setToast("Failed to broadcast alert.");
         }
     };
 
-    // Timeline block — takes the emergency to display as a prop so each
-    // role can scope it: Citizen/Panchayath see the raw shared emergency,
-    // but Ward Member only ever sees it when it belongs to their own ward
-    // (passed in as null otherwise from the call site below).
+    const handleDeleteBroadcast = async (id) => {
+        if (window.confirm("Delete this emergency alert?")) {
+            try {
+                await api.delete(`emergencies/broadcasts/${id}/`);
+                setBroadcasts((prev) => prev.filter((item) => item.id !== id));
+                setToast("Alert deleted.");
+                fetchBroadcastsOnly();
+            } catch (e) {}
+        }
+    };
+
+    const handleSaveResource = async (e) => {
+        e.preventDefault();
+        if (!resForm.name || !resForm.phone) {
+            setToast("Please enter Name and Phone Number.");
+            return;
+        }
+
+        const isEdit = !!resForm.id;
+        const url = isEdit
+            ? `emergencies/resources/${resForm.id}/`
+            : "emergencies/resources/";
+
+        const payload = {
+            name: resForm.name,
+            type: resForm.type,
+            distance: resForm.distance || "0.5km • 5 mins",
+            desc: resForm.desc || "Emergency Service",
+            phone: resForm.phone
+        };
+
+        try {
+            const res = isEdit ? await api.put(url, payload) : await api.post(url, payload);
+            const savedItem = res.data;
+
+            if (savedItem) {
+                setDbResources((prev) => {
+                    if (isEdit) {
+                        return prev.map((item) => (item.id === savedItem.id ? savedItem : item));
+                    }
+                    return [savedItem, ...prev];
+                });
+
+                setToast(isEdit ? "Contact updated successfully!" : "Contact added successfully!");
+                setResForm({ id: null, name: "", type: "Medical", distance: "", desc: "", phone: "" });
+                fetchResources();
+            }
+        } catch (error) {
+            setToast("Failed to save contact details.");
+        }
+    };
+
+    const handleEditResourceClick = (r) => {
+        setResForm({
+            id: r.id,
+            name: r.name,
+            type: r.type || "Medical",
+            distance: r.distance || "",
+            desc: r.desc || "",
+            phone: r.phone
+        });
+    };
+
+    const handleDeleteResourceClick = async (id) => {
+        if (window.confirm("Are you sure you want to delete this emergency contact?")) {
+            try {
+                await api.delete(`emergencies/resources/${id}/`);
+                setDbResources((prev) => prev.filter((item) => item.id !== id));
+                setToast("Contact deleted.");
+                fetchResources();
+            } catch (e) {}
+        }
+    };
+
     const Timeline = ({ data }) => (
         <div className="em-card em-timeline-card">
             <h4>⏱️ Active Response Timeline</h4>
@@ -441,11 +662,7 @@ export default function EmergencyPage() {
                 <div className="em-timeline">
                     {TIMELINE_STEPS.map((s) => (
                         <div key={s.step} className={`em-time-item ${getTimelineClass(data, s.step)}`}>
-                            <div
-                                className={`em-dot ${getDotClass(data, s.step)} ${
-                                    data.step === s.step ? "pulse-dot" : ""
-                                }`}
-                            ></div>
+                            <div className={`em-dot ${getDotClass(data, s.step)} ${data.step === s.step ? "pulse-dot" : ""}`}></div>
                             <div className="em-time-text">
                                 <strong>{s.label}</strong>
                                 {data.step === s.step && (
@@ -469,16 +686,22 @@ export default function EmergencyPage() {
                 <h4>{title}</h4>
             </div>
             <div className="em-recent-list">
-                {history.map((req) => (
-                    <div key={req.id} className="em-recent-item">
-                        <div className={`em-rec-icon ${req.iconClass}`}>{req.icon}</div>
-                        <div className="em-rec-info">
-                            <strong>{req.title}</strong>
-                            <span>{req.time}</span>
+                {history.length === 0 ? (
+                    <p className="em-timeline-empty">No past emergency logs.</p>
+                ) : (
+                    history.slice(0, 10).map((req) => (
+                        <div key={req.id} className="em-recent-item">
+                            <div className={`em-rec-icon ${req.iconClass}`}>{req.icon}</div>
+                            <div className="em-rec-info">
+                                <strong>{req.title}</strong>
+                                <span style={{ fontSize: "11px", color: "#64748b" }}>🗓️ {req.time}</span>
+                            </div>
+                            <span className={`em-tag ${req.status === 'RESOLVED' ? 'em-badge-green' : 'em-badge-yellow'}`}>
+                                {req.status}
+                            </span>
                         </div>
-                        <span className="em-tag">{req.status}</span>
-                    </div>
-                ))}
+                    ))
+                )}
             </div>
         </div>
     );
@@ -487,23 +710,23 @@ export default function EmergencyPage() {
         <div className="em-container">
             {toast && <div className="em-toast">{toast}</div>}
 
-            {isPanchayath && broadcasts.length > 0 && (
-                <div className="em-top-banner">
-                    <div className="em-banner-text">
-                        <span>⚠️</span> Emergency Warning: {broadcasts[0].title}
+            {broadcasts.length > 0 && (
+                <div className="em-top-banner" style={{ background: "#dc2626", color: "white", padding: "12px 20px", borderRadius: "8px", marginBottom: "15px", display: "flex", justifyContent: "space-between", alignItems: "center", boxShadow: "0 4px 12px rgba(220, 38, 38, 0.25)" }}>
+                    <div>
+                        <span style={{ fontSize: "16px", marginRight: "8px" }}>⚠️</span>
+                        <strong>Emergency Warning:</strong> {broadcasts[0].title}
+                        <span style={{ marginLeft: "12px", fontSize: "11px", background: "rgba(255,255,255,0.25)", padding: "2px 8px", borderRadius: "4px" }}>
+                            🗓️ {formatDate(broadcasts[0].created_at || broadcasts[0].formatted_date || broadcasts[0].time)}
+                        </span>
                     </div>
-                    <div className="em-banner-actions">
-                        <button
-                            className="em-btn-close"
-                            onClick={() => emergencyStore.setBroadcasts(broadcasts.slice(1))}
-                        >
-                            ✖
+                    {isPanchayath && (
+                        <button onClick={() => handleDeleteBroadcast(broadcasts[0].id)} style={{ background: "white", color: "#dc2626", border: "none", padding: "4px 10px", borderRadius: "4px", cursor: "pointer", fontWeight: "bold" }}>
+                            ✖ Delete
                         </button>
-                    </div>
+                    )}
                 </div>
             )}
 
-            {/* ============== CITIZEN — only renders for citizens ============== */}
             {isCitizen && (
                 <>
                     <div className="em-header-section">
@@ -515,9 +738,25 @@ export default function EmergencyPage() {
                             <div className="em-loc-icon">📍</div>
                             <div className="em-loc-details">
                                 <span className="em-loc-label">CURRENT LOCATION</span>
-                                <strong className="em-loc-ward">{location.name}</strong>
+                                <strong className="em-loc-ward">
+                                    {location.name}{" "}
+                                    {isValidCoords(location.coords) && (
+                                        <>
+                                            (
+                                            <a
+                                                href={getGoogleMapsUrl(location.coords)}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                style={{ color: "#2563eb", textDecoration: "underline" }}
+                                            >
+                                                {location.coords}
+                                            </a>
+                                            )
+                                        </>
+                                    )}
+                                </strong>
                                 <span className="em-loc-coords">
-                                    {location.coords} • {location.time}
+                                    {location.time}
                                 </span>
                             </div>
                             <div className="em-loc-refresh" onClick={() => handleRefreshLocation()} title="Refresh Location">
@@ -526,146 +765,38 @@ export default function EmergencyPage() {
                         </div>
                     </div>
 
-                    {/* Popup shown when SOS was activated but no GPS fix is
-                        available yet. Timeline stays parked on step 1 until
-                        the citizen taps "Turn On Location" and it succeeds. */}
-                    {showLocationPrompt && emergency && emergency.step === 1 && (
-                        <div
-                            style={{
-                                position: "fixed",
-                                inset: 0,
-                                background: "rgba(15, 23, 42, 0.55)",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                zIndex: 2000,
-                                padding: "20px",
-                            }}
-                        >
-                            <div
-                                style={{
-                                    background: "white",
-                                    borderRadius: "16px",
-                                    padding: "24px",
-                                    maxWidth: "360px",
-                                    width: "100%",
-                                    textAlign: "center",
-                                    boxShadow: "0 20px 40px rgba(0,0,0,0.25)",
-                                }}
-                            >
-                                <div style={{ fontSize: "40px", marginBottom: "10px" }}>📍</div>
-                                <h3 style={{ margin: "0 0 8px 0", color: "#b91c1c", fontSize: "16px" }}>
-                                    Location Not Shared
-                                </h3>
-                                <p style={{ fontSize: "13px", color: "#64748b", margin: "0 0 16px 0" }}>
-                                    Your SOS was activated, but we couldn't get your live location. Turn on
-                                    location so the Ward Member can find you.
-                                </p>
-
-                                {/* Mini mockup of the browser's own permission prompt, so the
-                                    citizen recognizes it and knows which option to tap. */}
-                                <div
-                                    style={{
-                                        background: "#f8fafc",
-                                        border: "1px solid #e2e8f0",
-                                        borderRadius: "14px",
-                                        padding: "14px",
-                                        textAlign: "left",
-                                        marginBottom: "20px",
-                                    }}
-                                >
-                                    <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "10px" }}>
-                                        <span style={{ fontSize: "16px" }}>📍</span>
-                                        <span style={{ fontSize: "12px", fontWeight: 700, color: "#475569" }}>
-                                            Know your location
-                                        </span>
+                    {broadcasts.length > 0 && (
+                        <div className="em-card" style={{ background: "#fef2f2", border: "1px solid #fecaca", marginBottom: "20px" }}>
+                            <h3 style={{ color: "#991b1b", margin: "0 0 10px 0", fontSize: "16px" }}>⚠️ Active Emergency Warnings</h3>
+                            {broadcasts.map((b) => (
+                                <div key={b.id} style={{ background: "white", padding: "12px 16px", borderRadius: "8px", border: "1px solid #fca5a5", marginBottom: "8px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                    <div>
+                                        <strong style={{ color: "#991b1b", fontSize: "14px", display: "block" }}>🚨 {b.title}</strong>
+                                        <p style={{ margin: "2px 0 0 0", fontSize: "12px", color: "#7f1d1d" }}>
+                                            📍 {b.ward || "Panchayat Wide"}
+                                        </p>
                                     </div>
-
-                                    <button
-                                        type="button"
-                                        onClick={handleEnableLocationForSOS}
-                                        style={{
-                                            display: "flex",
-                                            alignItems: "center",
-                                            justifyContent: "space-between",
-                                            gap: "8px",
-                                            background: "#dbeafe",
-                                            border: "none",
-                                            borderRadius: "999px",
-                                            padding: "8px 14px",
-                                            marginBottom: "6px",
-                                            width: "100%",
-                                            cursor: "pointer",
-                                        }}
-                                    >
-                                        <span style={{ fontSize: "12px", fontWeight: 700, color: "#1e3a8a" }}>
-                                            Allow while visiting the site
-                                        </span>
-                                        <span style={{ fontSize: "13px", color: "#16a34a", fontWeight: 900 }}>✓</span>
-                                    </button>
-
-                                    <button
-                                        type="button"
-                                        onClick={handleEnableLocationForSOS}
-                                        style={{
-                                            display: "flex",
-                                            alignItems: "center",
-                                            justifyContent: "space-between",
-                                            gap: "8px",
-                                            background: "#dbeafe",
-                                            border: "none",
-                                            borderRadius: "999px",
-                                            padding: "8px 14px",
-                                            marginBottom: "6px",
-                                            width: "100%",
-                                            cursor: "pointer",
-                                        }}
-                                    >
-                                        <span style={{ fontSize: "12px", fontWeight: 700, color: "#1e3a8a" }}>
-                                            Allow this time
-                                        </span>
-                                        <span style={{ fontSize: "13px", color: "#16a34a", fontWeight: 900 }}>✓</span>
-                                    </button>
-
-                                    <button
-                                        type="button"
-                                        disabled
-                                        style={{
-                                            display: "flex",
-                                            alignItems: "center",
-                                            justifyContent: "space-between",
-                                            gap: "8px",
-                                            background: "#f1f5f9",
-                                            border: "none",
-                                            borderRadius: "999px",
-                                            padding: "8px 14px",
-                                            width: "100%",
-                                            opacity: 0.7,
-                                            cursor: "not-allowed",
-                                        }}
-                                    >
-                                        <span style={{ fontSize: "12px", fontWeight: 700, color: "#64748b" }}>
-                                            Never allow
-                                        </span>
-                                        <span style={{ fontSize: "13px", color: "#dc2626", fontWeight: 900 }}>✕</span>
-                                    </button>
-
-                                    <p style={{ fontSize: "11px", color: "#94a3b8", margin: "10px 0 0 0" }}>
-                                        Tap <strong style={{ color: "#166534" }}>Allow while visiting the site</strong> or{" "}
-                                        <strong style={{ color: "#166534" }}>Allow this time</strong> above to turn
-                                        location on. Your browser may also show its own permission prompt — choose
-                                        "Allow" there too if it appears.
-                                    </p>
+                                    <span style={{ fontSize: "11px", color: "#9f1239", background: "#ffe4e6", padding: "4px 8px", borderRadius: "6px", fontWeight: "600" }}>
+                                        🗓️ {formatDate(b.created_at || b.formatted_date || b.time)}
+                                    </span>
                                 </div>
-                                <button
-                                    className="em-btn-resolve"
-                                    style={{ background: "#ef4444" }}
-                                    onClick={() => {
-                                        setShowLocationPrompt(false);
-                                        handleCancelSOS();
-                                    }}
-                                >
-                                    ✖ Cancel SOS Instead
+                            ))}
+                        </div>
+                    )}
+
+                    {showLocationPrompt && emergency && emergency.step === 1 && (
+                        <div style={{ position: "fixed", inset: 0, background: "rgba(15, 23, 42, 0.55)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 2000, padding: "20px" }}>
+                            <div style={{ background: "white", borderRadius: "16px", padding: "24px", maxWidth: "360px", width: "100%", textAlign: "center", boxShadow: "0 20px 40px rgba(0,0,0,0.25)" }}>
+                                <div style={{ fontSize: "40px", marginBottom: "10px" }}>📍</div>
+                                <h3 style={{ margin: "0 0 8px 0", color: "#b91c1c", fontSize: "16px" }}>Location Not Shared</h3>
+                                <p style={{ fontSize: "13px", color: "#64748b", margin: "0 0 16px 0" }}>
+                                    Your SOS was activated, but we couldn't get your live location. Turn on location so the Ward Member can find you.
+                                </p>
+                                <button type="button" onClick={handleEnableLocationForSOS} style={{ background: "#dbeafe", border: "none", borderRadius: "999px", padding: "8px 14px", width: "100%", marginBottom: "6px", cursor: "pointer", fontWeight: 700, color: "#1e3a8a" }}>
+                                    Allow location access ✓
+                                </button>
+                                <button className="em-btn-resolve" style={{ background: "#ef4444", marginTop: "10px" }} onClick={handleCancelSOS}>
+                                    Cancel SOS Instead
                                 </button>
                             </div>
                         </div>
@@ -684,122 +815,137 @@ export default function EmergencyPage() {
                                 <button
                                     className={`em-sos-circle ${emergency ? "em-sos-active" : ""}`}
                                     onClick={handleSOSActivate}
-                                    disabled={!!emergency}
+                                    disabled={!!emergency || location.name.includes("Locating")}
                                 >
-                                    <h2>{emergency ? "SENT" : "SOS"}</h2>
-                                    <span>{emergency ? "BROADCASTING…" : "ACTIVATE SOS"}</span>
+                                    <h2>{emergency ? "SENT" : location.name.includes("Locating") ? "WAIT" : "SOS"}</h2>
+                                    <span>
+                                        {location.name.includes("Locating")
+                                            ? "LOCATING..."
+                                            : emergency
+                                                ? "BROADCASTING…"
+                                                : "ACTIVATE SOS"}
+                                    </span>
                                 </button>
 
-                                {/* Cancel option: only while no team has been assigned yet
-                                    (step < 4). Lets a citizen undo an accidental tap. */}
                                 {emergency && emergency.step < 4 && (
-                                    <button
-                                        className="em-btn-resolve"
-                                        style={{ background: "#ef4444", marginBottom: "20px" }}
-                                        onClick={handleCancelSOS}
-                                    >
+                                    <button className="em-btn-resolve" style={{ background: "#ef4444", marginBottom: "20px" }} onClick={handleCancelSOS}>
                                         ✖ Cancel SOS (Activated by mistake)
                                     </button>
                                 )}
 
                                 <div className="em-sos-quick-actions">
-                                    <button onClick={() => window.open("tel:108")}>🚑 Ambulance (108)</button>
-                                    <button onClick={() => window.open("tel:112")}>🛡️ Police (112)</button>
-                                    <button onClick={() => window.open("tel:101")}>🚒 Fire Force (101)</button>
-                                    <button>🏥 Hospitals</button>
+                                    <button onClick={() => window.open(`tel:${dbResources.find(r => r.type === 'Medical')?.phone || '108'}`)}>
+                                        🚑 Ambulance ({dbResources.find(r => r.type === 'Medical')?.phone || '108'})
+                                    </button>
+                                    <button onClick={() => window.open(`tel:${dbResources.find(r => r.type === 'Police')?.phone || '112'}`)}>
+                                        🛡️ Police ({dbResources.find(r => r.type === 'Police')?.phone || '112'})
+                                    </button>
+                                    <button onClick={() => window.open(`tel:${dbResources.find(r => r.type === 'Fire')?.phone || '101'}`)}>
+                                        🚒 Fire Force ({dbResources.find(r => r.type === 'Fire')?.phone || '101'})
+                                    </button>
+                                    <button onClick={() => setSelectedType("Medical")}>🏥 Hospitals</button>
                                 </div>
                             </div>
 
                             <div className="em-section-title">Select Emergency Type</div>
                             <div className="em-type-grid">
                                 {emergencyTypes.map((type) => (
-                                    <button
-                                        key={type.name}
-                                        className={`em-type-btn ${selectedType === type.name ? "em-type-btn-active" : ""}`}
-                                        onClick={() => setSelectedType(type.name)}
-                                        disabled={!!emergency}
-                                    >
+                                    <button key={type.name} className={`em-type-btn ${selectedType === type.name ? "em-type-btn-active" : ""}`} onClick={() => setSelectedType(type.name)} disabled={!!emergency}>
                                         <span>{type.icon}</span>
                                         {type.name}
                                     </button>
                                 ))}
                             </div>
 
-                            <div className="em-map-container">
-                                <div className="em-map-placeholder">
-                                    <span className="em-map-icon">🗺️</span>
-                                </div>
-                                <div className="em-map-controls">
-                                    <button>+</button>
-                                    <button>-</button>
-                                </div>
-                                <div className="em-map-label">Interactive Resource Map • Live Data</div>
-                            </div>
+                            <div className="em-resource-grid" style={{ marginTop: "20px" }}>
+                                {filteredResources.length === 0 ? (
+                                    <p className="em-timeline-empty">No emergency places or contacts found.</p>
+                                ) : (
+                                    filteredResources.map((res) => (
+                                        <div key={res.id} className="em-resource-card">
+                                            <div className="em-res-header">
+                                                <strong>{res.name}</strong>
+                                                <span className={`em-badge ${res.type === "Medical" ? "em-badge-green" : "em-badge-yellow"}`}>
+                                                    {res.distance || "Near You"}
+                                                </span>
+                                            </div>
+                                            <p>{res.desc || "Emergency Service"}</p>
+                                            <div className="em-res-actions">
+                                                <button
+                                                    className="em-btn-call"
+                                                    onClick={() => {
+                                                        if (res.phone && res.phone !== "N/A") {
+                                                            window.open(`tel:${res.phone}`);
+                                                        } else {
+                                                            alert("This place's direct contact number is not available on OpenStreetMap. You can add its verified number using Panchayat Admin Panel.");
+                                                        }
+                                                    }}
+                                                    style={{ opacity: res.phone === "N/A" ? 0.7 : 1 }}
+                                                >
+                                                    📞 Call {res.phone !== "N/A" ? `(${res.phone})` : "(No Direct Number)"}
+                                                </button>
 
-                            <div className="em-resource-grid">
-                                {filteredResources.map((res) => (
-                                    <div key={res.id} className="em-resource-card">
-                                        <div className="em-res-header">
-                                            <strong>{res.name}</strong>
-                                            <span className={`em-badge ${res.type === "Medical" ? "em-badge-green" : "em-badge-yellow"}`}>
-                                                {res.distance}
-                                            </span>
+                                                <button
+                                                    className="em-btn-nav"
+                                                    onClick={() => {
+                                                        const dest = res.lat && res.lon
+                                                            ? `${res.lat},${res.lon}`
+                                                            : encodeURIComponent(`${res.name} near ${location.name}`);
+                                                        const navUrl = location.lat && location.lon
+                                                            ? `https://www.google.com/maps/dir/?api=1&origin=${location.lat},${location.lon}&destination=${dest}`
+                                                            : `https://www.google.com/maps/search/?api=1&query=${dest}`;
+                                                        window.open(navUrl, "_blank");
+                                                    }}
+                                                >
+                                                    🧭 Navigate
+                                                </button>
+                                            </div>
                                         </div>
-                                        <p>{res.desc}</p>
-                                        <div className="em-res-actions">
-                                            <button className="em-btn-call" onClick={() => window.open(`tel:${res.phone}`)}>
-                                                📞 Call
-                                            </button>
-                                            <button className="em-btn-nav">🧭 Navigate</button>
-                                        </div>
-                                    </div>
-                                ))}
+                                    ))
+                                )}
                             </div>
                         </div>
 
                         <div className="em-right-col">
-                            <div className="em-card em-weather-card">
-                                <span className="em-weather-label">WEATHER WARNING</span>
-                                <h3>Heavy Rain Alert</h3>
-                                <div className="em-weather-bottom">
-                                    <span className="em-temp">🌡️ 28°C</span>
-                                    <span className="em-weather-badge">Level: Moderate</span>
-                                </div>
-                            </div>
-
                             <Timeline data={emergency} />
-
-                            <div className="em-card em-safety-card">
-                                <h4>💡 Emergency Safety Tips</h4>
-                                <ul>
-                                    <li><strong>Stay Calm:</strong> Panicking reduces your ability to react effectively.</li>
-                                    <li><strong>Higher Ground:</strong> If flood levels rise, move to upper floors immediately.</li>
-                                    <li><strong>Keep ID Ready:</strong> Keep basic identification and medication handy.</li>
-                                    <li><strong>Power Off:</strong> In case of electrical hazards, switch off the main fuse.</li>
-                                </ul>
-                            </div>
-
-                            <RecentRequests title="⏱️ Recent Requests" />
+                            <RecentRequests title="⏱️ Past Emergency History" />
                         </div>
                     </div>
                 </>
             )}
 
-            {/* ============== WARD MEMBER — only renders for ward members ============== */}
             {isWardMember && (
                 <>
                     <div className="em-header-section">
                         <div className="em-header-titles">
                             <h2>Ward Response Dashboard</h2>
-                            <p>{currentUser.name} — incoming SOS alerts and response coordination for {currentWard}.</p>
+                            <p>{currentUser.name} — incoming SOS alerts and response coordination for <strong>{getWardName(currentWard)}</strong>.</p>
                         </div>
                     </div>
+
+                    {broadcasts.length > 0 && (
+                        <div className="em-card" style={{ background: "#fef2f2", border: "1px solid #fecaca", marginBottom: "20px" }}>
+                            <h3 style={{ color: "#991b1b", margin: "0 0 10px 0", fontSize: "16px" }}>⚠️ Panchayat Warnings</h3>
+                            {broadcasts.map((b) => (
+                                <div key={b.id} style={{ background: "white", padding: "12px 16px", borderRadius: "8px", border: "1px solid #fca5a5", marginBottom: "8px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                    <div>
+                                        <strong style={{ color: "#991b1b", fontSize: "14px", display: "block" }}>🚨 {b.title}</strong>
+                                        <p style={{ margin: "2px 0 0 0", fontSize: "12px", color: "#7f1d1d" }}>
+                                            📍 {b.ward || "Panchayat Wide"}
+                                        </p>
+                                    </div>
+                                    <span style={{ fontSize: "11px", color: "#9f1239", background: "#ffe4e6", padding: "4px 8px", borderRadius: "6px", fontWeight: "600" }}>
+                                        🗓️ {formatDate(b.created_at || b.formatted_date || b.time)}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    )}
 
                     <div className="em-main-grid">
                         <div className="em-left-col">
                             <div className="em-card">
-                                <h3 className="em-red-title">📩 Messages — {currentWard} ({currentUser.phone})</h3>
-                                <p className="em-sos-desc">SMS-style alerts sent to your registered phone when a citizen in your ward activates SOS.</p>
+                                <h3 className="em-red-title">📩 Messages — {getWardName(currentWard)} ({getFreshUserPhone()})</h3>
                                 {myWardInbox.length === 0 ? (
                                     <p className="em-timeline-empty">No messages yet.</p>
                                 ) : (
@@ -817,35 +963,53 @@ export default function EmergencyPage() {
                                 )}
                             </div>
 
-                            {emergency && emergency.ward === currentWard ? (
+                            {myWardEmergency ? (
                                 <div className="em-card em-request-card">
                                     <div className="em-res-header">
                                         <strong>
-                                            {emergency.icon} {emergency.type} Emergency — {emergency.ward}
+                                            {myWardEmergency.icon} {myWardEmergency.type} Emergency — {getWardName(myWardEmergency.ward)}
                                         </strong>
-                                        <span className="em-badge em-badge-yellow">Step {emergency.step}/5</span>
+                                        <span className="em-badge em-badge-yellow">Step {myWardEmergency.step}/5</span>
                                     </div>
+
                                     <p style={{ margin: "8px 0", fontSize: "13px", color: "#475569" }}>
-                                        📍 {emergency.locationName} ({emergency.coords}) • Reported {emergency.createdAt}
+                                        📍 {myWardEmergency.locationName}{" "}
+                                        {isValidCoords(myWardEmergency.coords) && (
+                                            <>
+                                                (
+                                                <a
+                                                    href={getGoogleMapsUrl(myWardEmergency.coords)}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    style={{ color: "#2563eb", textDecoration: "underline", fontWeight: "600" }}
+                                                    title="Open coordinates in Google Maps"
+                                                >
+                                                    {myWardEmergency.coords}
+                                                </a>
+                                                )
+                                            </>
+                                        )}
                                     </p>
+
                                     <p style={{ margin: "0 0 15px 0", fontSize: "13px", color: "#475569" }}>
-                                        👤 {emergency.citizen.name} — {emergency.citizen.phone}
+                                        👤 {myWardEmergency.citizen.name} — {myWardEmergency.citizen.phone}
                                     </p>
+
                                     <div className="em-res-actions">
-                                        <button className="em-btn-call" onClick={() => window.open(`tel:${emergency.citizen.phone}`)}>
+                                        <button className="em-btn-call" onClick={() => window.open(`tel:${myWardEmergency.citizen.phone}`)}>
                                             📞 Call Citizen
                                         </button>
-                                        {emergency.step === 3 && (
+                                        {myWardEmergency.step === 3 && (
                                             <button className="em-btn-nav em-btn-primary" onClick={handleAssignTeam}>
                                                 ✅ Assign My Team
                                             </button>
                                         )}
-                                        {emergency.step === 4 && (
+                                        {myWardEmergency.step === 4 && (
                                             <button className="em-btn-nav em-btn-primary" onClick={handleDispatch}>
                                                 🚀 Dispatch — Help on the Way
                                             </button>
                                         )}
-                                        {emergency.step === 5 && (
+                                        {myWardEmergency.step === 5 && (
                                             <button className="em-btn-nav em-btn-primary" onClick={handleResolve}>
                                                 ✔️ Mark Resolved
                                             </button>
@@ -854,49 +1018,173 @@ export default function EmergencyPage() {
                                 </div>
                             ) : (
                                 <div className="em-card">
-                                    <p className="em-timeline-empty">No active SOS request in {currentWard} right now.</p>
+                                    <p className="em-timeline-empty">No active SOS request in {getWardName(currentWard)} right now.</p>
                                 </div>
                             )}
                         </div>
 
                         <div className="em-right-col">
                             <Timeline data={myWardEmergency} />
-                            <RecentRequests title="⏱️ Recent Requests" />
+                            <RecentRequests title="⏱️ Past Emergency History" />
                         </div>
                     </div>
                 </>
             )}
 
-            {/* ============== PANCHAYATH — only renders for panchayath/admin ============== */}
             {isPanchayath && (
                 <>
                     <div className="em-header-section">
                         <div className="em-header-titles">
                             <h2>Panchayath Emergency Control</h2>
-                            <p>{panchayathName} — monitor SOS activity and broadcast warnings.</p>
+                            <p>{panchayathName} — monitor SOS activity and manage emergency directory.</p>
                         </div>
                     </div>
 
-                    <div className="em-admin-panel">
-                        <h3>🛡️ Broadcast Manager</h3>
-                        <form onSubmit={handleAddBroadcast} className="em-admin-form">
+                    <div className="em-admin-panel" style={{ marginBottom: "20px", background: "#f8fafc", padding: "20px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
+                        <h3 style={{ margin: "0 0 10px 0", color: "#1e293b" }}>📞 Manage Emergency Directory</h3>
+                        <p style={{ fontSize: "13px", color: "#64748b", margin: "0 0 15px 0" }}>
+                            Add, update or delete custom emergency contacts (Hospitals, Police, KSEB, Fire Force, etc.).
+                        </p>
+
+                        <form onSubmit={handleSaveResource} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "10px", marginBottom: "15px" }}>
+                            <input
+                                type="text"
+                                placeholder="Service Name (e.g. Taluk Hospital)"
+                                value={resForm.name}
+                                onChange={(e) => setResForm({ ...resForm, name: e.target.value })}
+                                required
+                                style={{ padding: "8px 12px", borderRadius: "6px", border: "1px solid #cbd5e1" }}
+                            />
+                            <input
+                                type="text"
+                                placeholder="Phone Number"
+                                value={resForm.phone}
+                                onChange={(e) => setResForm({ ...resForm, phone: e.target.value })}
+                                required
+                                style={{ padding: "8px 12px", borderRadius: "6px", border: "1px solid #cbd5e1" }}
+                            />
+                            <select
+                                value={resForm.type}
+                                onChange={(e) => setResForm({ ...resForm, type: e.target.value })}
+                                style={{ padding: "8px 12px", borderRadius: "6px", border: "1px solid #cbd5e1" }}
+                            >
+                                <option value="Medical">Medical / Hospital</option>
+                                <option value="Police">Police Station</option>
+                                <option value="Fire">Fire Force</option>
+                                <option value="Electrical">KSEB / Electrical</option>
+                                <option value="Flood">Flood Response</option>
+                                <option value="Accident">Accident Helpline</option>
+                                <option value="Other">Other Helpline</option>
+                            </select>
+                            <input
+                                type="text"
+                                placeholder="Distance/Timing (e.g. 1.2km • 8 mins)"
+                                value={resForm.distance}
+                                onChange={(e) => setResForm({ ...resForm, distance: e.target.value })}
+                                style={{ padding: "8px 12px", borderRadius: "6px", border: "1px solid #cbd5e1" }}
+                            />
+                            <input
+                                type="text"
+                                placeholder="Description (e.g. 24/7 Ward)"
+                                value={resForm.desc}
+                                onChange={(e) => setResForm({ ...resForm, desc: e.target.value })}
+                                style={{ padding: "8px 12px", borderRadius: "6px", border: "1px solid #cbd5e1" }}
+                            />
+                            <div style={{ display: "flex", gap: "6px" }}>
+                                <button type="submit" style={{ flex: 1, background: "#2563eb", color: "white", border: "none", borderRadius: "6px", fontWeight: "600", cursor: "pointer" }}>
+                                    {resForm.id ? "Update Contact" : "Add Contact"}
+                                </button>
+                                {resForm.id && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setResForm({ id: null, name: "", type: "Medical", distance: "", desc: "", phone: "" })}
+                                        style={{ background: "#64748b", color: "white", border: "none", borderRadius: "6px", padding: "0 10px", cursor: "pointer" }}
+                                    >
+                                        Cancel
+                                    </button>
+                                )}
+                            </div>
+                        </form>
+
+                        <div style={{ maxHeight: "200px", overflowY: "auto", borderTop: "1px solid #e2e8f0", paddingTop: "10px" }}>
+                            <table style={{ width: "100%", fontSize: "13px", textAlign: "left", borderCollapse: "collapse" }}>
+                                <thead>
+                                    <tr style={{ background: "#f1f5f9", color: "#475569" }}>
+                                        <th style={{ padding: "6px 8px" }}>Name</th>
+                                        <th style={{ padding: "6px 8px" }}>Type</th>
+                                        <th style={{ padding: "6px 8px" }}>Phone</th>
+                                        <th style={{ padding: "6px 8px" }}>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {dbResources.length === 0 ? (
+                                        <tr>
+                                            <td colSpan="4" style={{ padding: "10px", textAlign: "center", color: "#94a3b8" }}>
+                                                No custom contacts added yet. Overpass live map places will show automatically.
+                                            </td>
+                                        </tr>
+                                    ) : (
+                                        dbResources.map((r) => (
+                                            <tr key={r.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                                                <td style={{ padding: "6px 8px", fontWeight: "600" }}>{r.name}</td>
+                                                <td style={{ padding: "6px 8px" }}>{r.type}</td>
+                                                <td style={{ padding: "6px 8px" }}>{r.phone}</td>
+                                                <td style={{ padding: "6px 8px", display: "flex", gap: "8px" }}>
+                                                    <button
+                                                        onClick={() => handleEditResourceClick(r)}
+                                                        style={{ background: "#3b82f6", color: "white", border: "none", padding: "2px 8px", borderRadius: "4px", fontSize: "11px", cursor: "pointer" }}
+                                                    >
+                                                        Edit
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDeleteResourceClick(r.id)}
+                                                        style={{ background: "#ef4444", color: "white", border: "none", padding: "2px 8px", borderRadius: "4px", fontSize: "11px", cursor: "pointer" }}
+                                                    >
+                                                        Delete
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div className="em-admin-panel" style={{ marginBottom: "20px", background: "#fef2f2", padding: "20px", borderRadius: "12px", border: "1px solid #fecaca" }}>
+                        <h3 style={{ margin: "0 0 10px 0", color: "#b91c1c" }}>🛡️ Broadcast Warning Manager</h3>
+                        <form onSubmit={handleAddBroadcast} style={{ display: "flex", gap: "10px", marginBottom: "15px" }}>
                             <input
                                 type="text"
                                 placeholder="Type new emergency warning..."
                                 value={newAlertTitle}
                                 onChange={(e) => setNewAlertTitle(e.target.value)}
+                                style={{ flex: 1, padding: "10px 14px", borderRadius: "6px", border: "1px solid #fca5a5" }}
                             />
-                            <button type="submit">Broadcast</button>
+                            <button type="submit" style={{ background: "#ef4444", color: "white", border: "none", padding: "10px 20px", borderRadius: "6px", fontWeight: "700", cursor: "pointer" }}>
+                                Broadcast Alert
+                            </button>
                         </form>
                         <div className="em-admin-list">
-                            {broadcasts.map((item) => (
-                                <div key={item.id} className="em-admin-list-item">
-                                    <span>{item.title}</span>
-                                    <button onClick={() => handleDeleteBroadcast(item.id)} className="em-btn-delete">
-                                        Delete
-                                    </button>
-                                </div>
-                            ))}
+                            {broadcasts.length === 0 ? (
+                                <p style={{ fontSize: "13px", color: "#991b1b" }}>No active warning alerts broadcasted.</p>
+                            ) : (
+                                broadcasts.map((item) => (
+                                    <div key={item.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", background: "white", borderRadius: "6px", marginBottom: "6px", border: "1px solid #fca5a5" }}>
+                                        <div>
+                                            <span style={{ fontWeight: "600", color: "#991b1b", fontSize: "14px", display: "block" }}>
+                                                ⚠️ {item.title}
+                                            </span>
+                                            <span style={{ fontSize: "11px", color: "#9f1239" }}>
+                                                🗓️ {formatDate(item.created_at || item.formatted_date || item.time)}
+                                            </span>
+                                        </div>
+                                        <button onClick={() => handleDeleteBroadcast(item.id)} style={{ background: "#dc2626", color: "white", border: "none", padding: "6px 12px", borderRadius: "4px", cursor: "pointer", fontSize: "12px", fontWeight: "600" }}>
+                                            Delete
+                                        </button>
+                                    </div>
+                                ))
+                            )}
                         </div>
                     </div>
 
@@ -922,12 +1210,28 @@ export default function EmergencyPage() {
                                 <div className="em-card em-request-card">
                                     <div className="em-res-header">
                                         <strong>
-                                            {emergency.icon} {emergency.type} Emergency — {emergency.ward}
+                                            {emergency.icon} {emergency.type} Emergency — {getWardName(emergency.ward)}
                                         </strong>
                                         <span className="em-badge em-badge-yellow">Step {emergency.step}/5</span>
                                     </div>
                                     <p style={{ margin: "8px 0", fontSize: "13px", color: "#475569" }}>
-                                        📍 {emergency.locationName} • Ward Member notified
+                                        📍 {emergency.locationName}{" "}
+                                        {isValidCoords(emergency.coords) && (
+                                            <>
+                                                (
+                                                <a
+                                                    href={getGoogleMapsUrl(emergency.coords)}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    style={{ color: "#2563eb", textDecoration: "underline", fontWeight: "600" }}
+                                                    title="Open coordinates in Google Maps"
+                                                >
+                                                    {emergency.coords}
+                                                </a>
+                                                )
+                                            </>
+                                        )}{" "}
+                                        • Ward Member notified
                                     </p>
                                     <div className="em-res-actions">
                                         {emergency.step === 4 && (
@@ -952,19 +1256,10 @@ export default function EmergencyPage() {
 
                         <div className="em-right-col">
                             <Timeline data={emergency} />
-                            <RecentRequests title="⏱️ Recent Requests (Panchayat Wide)" />
+                            <RecentRequests title="⏱️ Past Emergency History (Panchayat Wide)" />
                         </div>
                     </div>
                 </>
-            )}
-
-            {/* Fallback if role doesn't match any known type */}
-            {!isCitizen && !isWardMember && !isPanchayath && (
-                <div className="em-card">
-                    <p className="em-timeline-empty">
-                        Your account role ("{userRole}") isn't recognized. Please check your profile settings.
-                    </p>
-                </div>
             )}
         </div>
     );
