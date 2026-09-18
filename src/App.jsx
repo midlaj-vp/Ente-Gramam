@@ -152,7 +152,6 @@ function AppRoutes() {
   const handleLogin = (credentials) => {
     let rawImg = credentials.profileImage || credentials.profile_image || "";
 
-    // 🟢 Base64 സ്ട്രിംഗ് വരുന്നത് തടയാൻ Safe Check
     if (typeof rawImg === "string" && rawImg.startsWith("data:image")) {
       rawImg = "";
     }

@@ -2,8 +2,10 @@ import axios from 'axios';
 
 // 🟢 1. Common Axios Instance ഉണ്ടാക്കുന്നു
 const api = axios.create({
-  baseURL: 'http://127.0.0.1:8000/api/',
-  withCredentials: true, // HttpOnly Cookies അയക്കാൻ നിർബന്ധമാണ്
+  baseURL: window.location.hostname === "localhost"
+    ? "http://127.0.0.1:8000/api/"
+    : "https://entegra.in/api/",
+  withCredentials: true,
 });
 
 // 🟢 2. Response Interceptor (Auto Refresh ചെയ്യാൻ)
