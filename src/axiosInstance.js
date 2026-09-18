@@ -2,9 +2,7 @@ import axios from 'axios';
 
 // 🟢 1. Common Axios Instance ഉണ്ടാക്കുന്നു
 const api = axios.create({
-  baseURL: window.location.hostname === "localhost"
-    ? "http://127.0.0.1:8000/api/"
-    : "https://entegra.in/api/",
+  baseURL:"https://entegra.in/api/",
   withCredentials: true,
 });
 
